@@ -213,6 +213,10 @@ int main(int argc, const char * argv[]) {
         }
 
         NSString *cmd = [NSString stringWithUTF8String:argv[argIdx]];
+        if ([cmd isEqualToString:@"--help"] || [cmd isEqualToString:@"-h"] || [cmd isEqualToString:@"help"]) {
+            printUsage(argv[0]);
+            return 0;
+        }
         IOBluetoothDevice *device = discoverBoseQCUltra(explicitMAC);
         if (!device) {
             fprintf(stderr, "[!] Could not find paired Bose QC Ultra Headphones. Pair them in macOS Bluetooth settings or pass --mac XX-XX-XX-XX-XX-XX.\n");
