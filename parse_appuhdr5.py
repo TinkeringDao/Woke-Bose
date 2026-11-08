@@ -1,167 +1,153 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 acid9burn
 """
-Qualcomm APPUHDR5 / PARTDATA / APPUPFTR OTA Firmware Container Parser
-Target: Bose QuietComfort Ultra Headphones (Lonestarr, PID 0x4066, OTG-QCC-384)
+Qualcomm APPUHDR5 / PARTDATA / APPUPFTR Container Metadata & Entropy Inspector.
+
+Clean-room interoperability and hardware security boundary verification utility
+developed under EU Directive 2009/24/EC Arts. 5(3) & 6 (§§ 69d Abs. 3, 69e UrhG),
+§ 3 Abs. 1 Nr. 2 GeschGehG, and 17 U.S.C. § 1201(f). Supplied strictly as
+non-commercial free and open-source software (Regulation (EU) 2024/2847 Recitals
+15 & 18; Directive (EU) 2024/2853 Art. 2(2)).
+
+Inspects outer TLV container geometry, partition block alignment, and Shannon
+entropy to verify OTP_PROD hardware encryption boundaries. Performs zero
+decryption, zero key extraction, and zero binary modification, and redacts all
+proprietary payload/signature bytes (<REDACTED_OEM_BYTES>). See LEGAL.md.
 """
 
 import json
 import math
-import re
 import struct
 import sys
 from collections import Counter
 from pathlib import Path
 
-# Standard Qualcomm ADK IMAGE_SECTION_ID mapping for QCC51xx / QCC30xx flash layouts
-QCC_PARTITION_NAMES = {
-    0x00: "nonce (IMAGE_SECTION_NONCE / 128-bit AES-CTR IV / Nonce)",
-    0x01: "apps_p0_header / image_header (IMAGE_SECTION_APPS_P0_HEADER)",
-    0x02: "apps_p1_header (IMAGE_SECTION_APPS_P1_HEADER)",
-    0x03: "audio_header (IMAGE_SECTION_AUDIO_HEADER)",
-    0x04: "curator_filesystem (IMAGE_SECTION_CURATOR_FILESYSTEM)",
-    0x05: "apps_p0_image (IMAGE_SECTION_APPS_P0_IMAGE - System/BT Core)",
-    0x06: "apps_ro_config_filesystem (IMAGE_SECTION_APPS_RO_CONFIG_FILESYSTEM)",
-    0x07: "apps_ro_filesystem (IMAGE_SECTION_APPS_RO_FILESYSTEM - Prompts/DSP/Assets)",
-    0x08: "apps_device_ro_filesystem (IMAGE_SECTION_APPS_DEVICE_RO_FILESYSTEM)",
-    0x09: "apps_p1_image (IMAGE_SECTION_APPS_P1_IMAGE - Customer App Core / Kalimba)",
-    0x0A: "audio_image (IMAGE_SECTION_AUDIO_IMAGE)",
+QCC_PARTITION_MAP = {
+    0x0000: "IMAGE_SECTION_NONCE / IV_SEED (16B Crypto Initialization Vector)",
+    0x0001: "IMAGE_SECTION_APPS_P0_HEADER / FLASH_HEADER (Partition Table & Hash Header)",
+    0x0002: "IMAGE_SECTION_APPS_P1_HEADER",
+    0x0003: "IMAGE_SECTION_AUDIO_HEADER (Kalimba DSP Header)",
+    0x0004: "IMAGE_SECTION_CURATOR_FILESYSTEM (Subsystem Boot / Radio Patches)",
+    0x0005: "IMAGE_SECTION_APPS_P0_IMAGE (Qualcomm System / BT Stack Firmware)",
+    0x0006: "IMAGE_SECTION_APPS_RO_CONFIG_FILESYSTEM (Read-Only Config / PS Keys)",
+    0x0007: "IMAGE_SECTION_APPS_RO_FILESYSTEM (Customer RO FS / DSP .kap / Voice Prompts)",
+    0x0008: "IMAGE_SECTION_APPS_DEVICE_CONFIG_FILESYSTEM",
+    0x0009: "IMAGE_SECTION_APPS_P1_IMAGE (Application Core P1 Firmware)",
+    0x000A: "IMAGE_SECTION_APPS_RW_FILESYSTEM (Writable Config / NVRAM)",
+    0x000B: "IMAGE_SECTION_AUDIO_IMAGE (Kalimba Audio DSP Image)",
 }
 
 
 def shannon_entropy(data: bytes) -> float:
     if not data:
         return 0.0
-    length = len(data)
     counts = Counter(data)
-    return -sum((count / length) * math.log2(count / length) for count in counts.values())
-
-
-def extract_ascii_strings(data: bytes, min_len: int = 6) -> list[str]:
-    pattern = re.compile(rb"[\x20-\x7e]{" + str(min_len).encode() + rb",}")
-    return [m.group(0).decode("ascii", errors="replace") for m in pattern.finditer(data)]
+    n = len(data)
+    return -sum((c / n) * math.log2(c / n) for c in counts.values())
 
 
 def parse_appuhdr5_header(payload: bytes) -> dict:
-    """
-    Parse the inner payload of APPUHDR5.
-    Layout observed in Bose QCC5181 containers:
-      - 'VR:' + 3-byte version (major, minor, patch)
-      - 'PRODUCT:' + null-terminated ASCII string
-      - 'OTP_PROD' + 2-byte big-endian uint16 flag
-    """
+    """Parse the 34-byte APPUHDR5 metadata payload without emitting raw OEM bytes."""
     info = {
-        "raw_hex": payload.hex(),
-        "raw_ascii": payload.decode("latin1"),
-        "version": None,
-        "product": None,
-        "otp_prod_flag": None,
+        "payload_redacted": "<REDACTED_OEM_BYTES>",
     }
     if payload.startswith(b"VR:") and len(payload) >= 6:
-        maj, min_v, pat = payload[3], payload[4], payload[5]
-        info["version"] = f"{maj}.{min_v}.{pat}"
-        rest = payload[6:]
-    else:
-        rest = payload
-
-    if rest.startswith(b"PRODUCT:"):
-        nul_idx = rest.find(b"\x00", 8)
-        if nul_idx != -1:
-            info["product"] = rest[8:nul_idx].decode("ascii", errors="replace")
-            rest = rest[nul_idx + 1 :]
-
-    if rest.startswith(b"OTP_PROD") and len(rest) >= 10:
-        flag = struct.unpack(">H", rest[8:10])[0]
-        info["otp_prod_flag"] = flag
-
+        ver_bytes = payload[3:6]
+        info["version_tuple"] = list(ver_bytes)
+        info["version_str"] = f"{ver_bytes[0]}.{ver_bytes[1]}.{ver_bytes[2]}"
+    if b"PRODUCT:" in payload:
+        idx = payload.index(b"PRODUCT:") + len(b"PRODUCT:")
+        end = payload.index(b"\x00", idx) if b"\x00" in payload[idx:] else len(payload)
+        info["product_codename"] = payload[idx:end].decode("ascii", errors="replace")
+    if b"OTP_PROD" in payload:
+        idx = payload.index(b"OTP_PROD") + len(b"OTP_PROD")
+        otp_val = payload[idx : idx + 2]
+        info["otp_prod_flag"] = int.from_bytes(otp_val, "big") if len(otp_val) == 2 else None
     return info
 
 
-def parse_container(filepath: Path) -> dict:
-    data = filepath.read_bytes()
-    total_size = len(data)
+def parse_container(bin_path: Path) -> dict:
+    raw = bin_path.read_bytes()
+    total_len = len(raw)
 
-    pos = 0
-    header_info = None
+    offset = 0
+    header_info = {}
     partitions = []
-    footer_info = None
+    footer_info = {}
     extra_blocks = []
 
-    while pos + 12 <= total_size:
-        tag = data[pos : pos + 8].decode("ascii", errors="replace")
-        length = struct.unpack(">I", data[pos + 8 : pos + 12])[0]
-        block_start = pos
-        payload_start = pos + 12
-        payload_end = payload_start + length
-        payload = data[payload_start:payload_end]
+    if raw[offset : offset + 8] == b"APPUHDR5":
+        hdr_len = struct.unpack(">I", raw[offset + 8 : offset + 12])[0]
+        hdr_payload = raw[offset + 12 : offset + 12 + hdr_len]
+        header_info = {
+            "magic": "APPUHDR5",
+            "offset": f"0x{offset:08x}",
+            "header_payload_len": hdr_len,
+            "parsed": parse_appuhdr5_header(hdr_payload),
+        }
+        offset += 12 + hdr_len
 
-        if tag.startswith("APPUHDR"):
-            parsed_hdr = parse_appuhdr5_header(payload)
-            header_info = {
-                "magic": tag,
-                "offset": f"0x{block_start:06x}",
-                "header_length": length,
-                "total_block_bytes": 12 + length,
-                **parsed_hdr,
-            }
-        elif tag == "PARTDATA":
-            part_type, part_id = struct.unpack(">HH", payload[:4])
-            part_u32 = struct.unpack(">I", payload[:4])[0]
-            part_body = payload[4:]
-            body_len = len(part_body)
-            ent = shannon_entropy(part_body)
-            strings_8 = extract_ascii_strings(part_body, min_len=8)
+    part_idx = 0
+    while offset + 12 <= total_len:
+        tag = raw[offset : offset + 8]
+        tag_str = tag.decode("ascii", errors="replace")
+        blk_len = struct.unpack(">I", raw[offset + 8 : offset + 12])[0]
+        payload_start = offset + 12
+        payload_end = payload_start + blk_len
+        payload = raw[payload_start:payload_end]
+
+        if tag == b"PARTDATA":
+            part_type = struct.unpack(">H", payload[0:2])[0] if len(payload) >= 4 else None
+            part_id = struct.unpack(">H", payload[2:4])[0] if len(payload) >= 4 else None
+            body = payload[4:]
+            ent = shannon_entropy(body)
+
             partitions.append(
                 {
-                    "index": len(partitions),
-                    "chunk_offset": f"0x{block_start:06x}",
-                    "data_offset": f"0x{payload_start + 4:06x}",
-                    "chunk_length_field": length,
-                    "payload_bytes": body_len,
-                    "aes_block_multiple": (body_len % 16 == 0),
-                    "aes_16b_blocks": body_len // 16,
-                    "part_type": part_type,
-                    "part_id": part_id,
-                    "part_header_u32": f"0x{part_u32:08x}",
-                    "inferred_name": QCC_PARTITION_NAMES.get(part_id, f"unknown_0x{part_id:02x}"),
+                    "index": part_idx,
+                    "chunk_offset": f"0x{offset:08x}",
+                    "data_offset": f"0x{payload_start + 4:08x}",
+                    "chunk_len": blk_len,
+                    "body_bytes": len(body),
+                    "aes_block_multiple": (len(body) % 16 == 0),
+                    "aes_16b_blocks": len(body) // 16,
+                    "part_type": f"0x{part_type:04x}" if part_type is not None else None,
+                    "part_id": f"0x{part_id:04x}" if part_id is not None else None,
+                    "inferred_name": QCC_PARTITION_MAP.get(part_id, f"UNKNOWN_SECTION_0x{part_id:04x}"),
                     "shannon_entropy": round(ent, 6),
-                    "first_16_bytes_hex": part_body[:16].hex(),
-                    "last_16_bytes_hex": part_body[-16:].hex(),
-                    "ascii_strings_len8_count": len(strings_8),
-                    "ascii_strings_len8_sample": strings_8[:5],
+                    "payload_bytes_redacted": "<REDACTED_OEM_BYTES>",
                 }
             )
-        elif tag in ("APPUPFTR", "APPUFTR"):
+            part_idx += 1
+
+        elif tag == b"APPUPFTR":
             ent = shannon_entropy(payload)
-            strings_6 = extract_ascii_strings(payload, min_len=6)
             footer_info = {
-                "magic": tag,
-                "offset": f"0x{block_start:06x}",
-                "payload_offset": f"0x{payload_start:06x}",
-                "length_field": length,
-                "total_block_bytes": 12 + length,
+                "magic": "APPUPFTR",
+                "chunk_offset": f"0x{offset:08x}",
+                "data_offset": f"0x{payload_start:08x}",
+                "signature_len_bytes": blk_len,
+                "signature_bits": blk_len * 8,
                 "shannon_entropy": round(ent, 6),
-                "signature_bits": length * 8,
-                "first_32_bytes_hex": payload[:32].hex(),
-                "last_32_bytes_hex": payload[-32:].hex(),
-                "full_signature_hex": payload.hex(),
-                "ascii_strings_len6": strings_6,
+                "signature_bytes_redacted": "<REDACTED_OEM_SIGNATURE>",
             }
         else:
             extra_blocks.append(
                 {
-                    "magic": tag,
-                    "offset": f"0x{block_start:06x}",
-                    "length": length,
+                    "tag": tag_str,
+                    "offset": f"0x{offset:08x}",
+                    "length": blk_len,
                 }
             )
 
-        pos = payload_end
+        offset = payload_end
 
     return {
-        "file": str(filepath),
-        "total_bytes": total_size,
-        "total_bytes_hex": f"0x{total_size:06x}",
-        "unparsed_trailing_bytes": total_size - pos,
+        "file_size_bytes": total_len,
+        "file_size_hex": f"0x{total_len:x}",
+        "bytes_accounted_for": offset,
+        "trailing_unparsed_bytes": total_len - offset,
         "header": header_info,
         "partitions": partitions,
         "footer": footer_info,
@@ -171,7 +157,7 @@ def parse_container(filepath: Path) -> dict:
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
-        print(f"Usage: {sys.argv[0]} <path-to-appuhdr5-firmware.bin>")
+        print(f"Usage: {sys.argv[0]} <path-to-appuhdr5-container.bin>")
         sys.exit(0)
     target = Path(sys.argv[1])
     report = parse_container(target)

@@ -1,4 +1,5 @@
-# Bose QuietComfort Ultra Headphones (0x4066 Lonestarr, FW 1.6.7)
+# SPDX-License-Identifier: MIT
+# Unofficial 10-Band Parametric EQ Preset for Bose QuietComfort Ultra Headphones (0x4066, FW 1.6.7)
 # Profile B: Harman Over-Ear 2018 Target (GRAS 43AG — Maximum Anti-Bloat & Sibilance Cut)
 # Prerequisite: Set on-device Bose 3-Band EQ [1.7] to 0, 0, 0 (`./bose-ultra-tuner pimp-audio flat`)
 # and disable Immersive Audio (`Spatial = 0`).

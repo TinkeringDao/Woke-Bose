@@ -47,24 +47,21 @@ Supporting Controllers:
 
 ## 2. `APPUHDR5` Firmware Container Anatomy (`1.6.7+g6ebabd2`)
 
-Container metadata for firmware revision `1.6.7+g6ebabd2` (inspected locally; no proprietary firmware binaries are hosted or distributed in this repository):
-- **Size:** `7,075,178` bytes (`0x6bf56a`)
-- **CRC32:** `0xAF34965B`
-- **SHA-256:** `50b00bc1e62c2b6709b0e9714842d7696ab53dd1c8b61c2c4f500150df127882`
+Clean-room structural specification of the Qualcomm `APPUHDR5` TLV container layout (total container size `7,075,178` bytes / `0x6bf56a`; all proprietary payload bytes, cryptographic nonces, and signature bytes are redacted as `<REDACTED_OEM_BYTES>` — zero proprietary binaries are hosted or distributed in this repository).
 
-Parsed via [`parse_appuhdr5.py`](../parse_appuhdr5.py):
+Structural geometry verified via [`parse_appuhdr5.py`](../parse_appuhdr5.py):
 
-| Chunk / Index | File Offset | Part ID | Qualcomm ADK Role (`IMAGE_SECTION_ID`) | Payload Bytes | 16B AES Blocks | Shannon Entropy | First 16 Bytes (Hex) |
+| Chunk / Index | File Offset | Part ID | Qualcomm ADK Role (`IMAGE_SECTION_ID`) | Payload Bytes | 16B AES Blocks | Shannon Entropy | Structural Layout & Security Boundary (`<REDACTED_OEM_BYTES>`) |
 | :--- | :--- | :--- | :--- | ---: | ---: | ---: | :--- |
-| **`APPUHDR5`** | `0x000000` | Header | `VR:\x01\x06\x07` `PRODUCT:LoneStarr\x00` `OTP_PROD\x00\x01` | `34` | N/A | Plaintext | `56523a01060750524f445543543a4c6f` |
-| **`PARTDATA` 0** | `0x00002e` | `0x0000` | `IMAGE_SECTION_NONCE` (128-bit AES-CTR IV) | `16` | `1` | `3.875000` | `4ef68de62f55e6b872d0acbed5792285` |
-| **`PARTDATA` 1** | `0x00004e` | `0x0001` | `IMAGE_SECTION_APPS_P0_HEADER` (Flash layout & hash table) | `560` | `35` | `7.669410` | `53789ff392839ed858cd9f8dcbb6e16d` |
-| **`PARTDATA` 2** | `0x00028e` | `0x0004` | `IMAGE_SECTION_CURATOR_FILESYSTEM` (Radio/boot patches) | `4,672` | `292` | `7.959534` | `f645bf6735879f127a67e1be4da4f1be` |
-| **`PARTDATA` 3** | `0x0014de` | `0x0005` | `IMAGE_SECTION_APPS_P0_IMAGE` (Qualcomm BT/system stack) | `592,256` | `37,016` | `7.999712` | `82b98e0864b63e808b1f1ff2fb5344b0` |
-| **`PARTDATA` 4** | `0x091e6e` | `0x0006` | `IMAGE_SECTION_APPS_RO_CONFIG_FILESYSTEM` (PS Keys / config) | `93,712` | `5,857` | `7.997897` | `d31a6f34fad9c1b1dc571fae97738f93` |
-| **`PARTDATA` 5** | `0x0a8c8e` | `0x0007` | `IMAGE_SECTION_APPS_RO_FILESYSTEM` (Kalimba `.kap` DSP & ANC) | `4,266,464` | `266,654` | `7.999958` | `ef9a83f6dd37a11c7829f69a2ef65eff` |
-| **`PARTDATA` 6** | `0x4ba67e` | `0x0009` | `IMAGE_SECTION_APPS_P1_IMAGE` (Bose application & BMAP server) | `2,117,072` | `132,317` | `7.999904` | `3eedeebc2938aa567a6a9f01a461a526` |
-| **`APPUPFTR`** | `0x6bf45e` | Footer | 2048-bit (`256 B`) RSA-PSS signature verified against OTP eFuse | `256` | N/A | `7.197566` | `163cab7e22a33d132597e700c59ea1d3` |
+| **`APPUHDR5`** | `0x000000` | Header | `"VR:" + [u8x3] + "PRODUCT:" + [ASCIIZ] + "OTP_PROD" + [u16be=0x0001]` | `34` | N/A | Plaintext | `[8B Magic "APPUHDR5"][4B Len] <REDACTED_OEM_BYTES>` |
+| **`PARTDATA` 0** | `0x00002e` | `0x0000` | `IMAGE_SECTION_NONCE` (128-bit AES-CTR IV) | `16` | `1` | `3.875000` | `[2B Type][2B PartID] <REDACTED_OEM_NONCE>` |
+| **`PARTDATA` 1** | `0x00004e` | `0x0001` | `IMAGE_SECTION_APPS_P0_HEADER` (Flash layout & hash table) | `560` | `35` | `7.669410` | `[2B Type][2B PartID] <REDACTED_OEM_BYTES>` (AES-128-CTR) |
+| **`PARTDATA` 2** | `0x00028e` | `0x0004` | `IMAGE_SECTION_CURATOR_FILESYSTEM` (Radio/boot patches) | `4,672` | `292` | `7.959534` | `[2B Type][2B PartID] <REDACTED_OEM_BYTES>` (AES-128-CTR) |
+| **`PARTDATA` 3** | `0x0014de` | `0x0005` | `IMAGE_SECTION_APPS_P0_IMAGE` (Qualcomm BT/system stack) | `592,256` | `37,016` | `7.999712` | `[2B Type][2B PartID] <REDACTED_OEM_BYTES>` (AES-128-CTR) |
+| **`PARTDATA` 4** | `0x091e6e` | `0x0006` | `IMAGE_SECTION_APPS_RO_CONFIG_FILESYSTEM` (PS Keys / config) | `93,712` | `5,857` | `7.997897` | `[2B Type][2B PartID] <REDACTED_OEM_BYTES>` (AES-128-CTR) |
+| **`PARTDATA` 5** | `0x0a8c8e` | `0x0007` | `IMAGE_SECTION_APPS_RO_FILESYSTEM` (Kalimba `.kap` DSP & ANC) | `4,266,464` | `266,654` | `7.999958` | `[2B Type][2B PartID] <REDACTED_OEM_BYTES>` (AES-128-CTR) |
+| **`PARTDATA` 6** | `0x4ba67e` | `0x0009` | `IMAGE_SECTION_APPS_P1_IMAGE` (Bose application & BMAP server) | `2,117,072` | `132,317` | `7.999904` | `[2B Type][2B PartID] <REDACTED_OEM_BYTES>` (AES-128-CTR) |
+| **`APPUPFTR`** | `0x6bf45e` | Footer | 2048-bit (`256 B`) RSA-PSS signature verified against OTP eFuse | `256` | N/A | `7.197566` | `[8B Magic "APPUPFTR"][4B Len] <REDACTED_OEM_SIGNATURE>` |
 
 ### Why Direct Bluetooth SPP User-Preference Configuration Leaves Signed Firmware Untouched
 Because `OTP_PROD = 0x0001` enforces hardware AES-128-CTR encryption across all `442,172` blocks (`7.9999` bits/byte entropy) and verifies the `2048-bit` RSA-PSS footer inside the `QCC5181` Mask ROM before commit, executable code partitions (`0..5`) are cryptographically immutable. For host interoperability, the running `Apps P1` firmware exposes standard plaintext `GET` (`0x01`), `SETGET` (`0x02`), and `START` (`0x05`) user-preference messages over Bluetooth RFCOMM Channel 2 (`00000000-deca-fade-deca-deafdecacaff`), configuring the headphone's persistent user-settings NVRAM (`Partition 6` PS Keys) and active Kalimba DSP EQ registers without modifying or circumventing any signed firmware partition.

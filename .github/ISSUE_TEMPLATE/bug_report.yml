@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please do **not** include personal Bluetooth MAC addresses or hardware serial numbers in your report.
+        **Clean-Room & Privacy Notice:** Do **not** include personal Bluetooth MAC addresses, hardware serial numbers, proprietary firmware binaries (`.bin`/`.dfu`), verbatim firmware hex dumps/nonces, or screenshots of proprietary OEM mobile apps.
   - type: input
     id: firmware
     attributes:

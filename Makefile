@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 acid9burn
+# Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra Headphones
+# Independent clean-room macOS IOBluetooth build configuration (See LEGAL.md).
+
 CC = clang
 CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -O2
 FRAMEWORKS = -framework Foundation -framework IOBluetooth

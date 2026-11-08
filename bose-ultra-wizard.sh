@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 acid9burn
+# Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra Headphones
+# Developed under EU Directive 2009/24/EC (§§ 69d/69e UrhG), § 3 Abs. 1 Nr. 2 GeschGehG,
+# § 23 Abs. 1 Nr. 3 MarkenG, Regulation (EU) 2024/2847 Recitals 15 & 18, and 17 U.S.C. § 1201(f).
+# Not affiliated with or endorsed by Bose Corporation. See LEGAL.md.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TUNER="${DIR}/bose-ultra-tuner"
 
 if [[ ! -x "${TUNER}" ]]; then
-  echo "[*] Compiling native macOS IOBluetooth BMAP tuner..."
+  echo "[*] Compiling macOS IOBluetooth user-preference interoperability client..."
   make -C "${DIR}"
 fi
 
 echo "========================================================================"
-echo "  Woke Bose — QuietComfort Ultra (0x4066) NVRAM & DSP Calibration Wizard"
+echo "  Woke Edition — Unofficial NVRAM & DSP Wizard for Bose QC Ultra (0x4066)"
 echo "========================================================================"
 echo "  1) Apply 'Woke' Edition Profile (Recommended)"
 echo "       - Hardware EQ [1.7]  : Bass -3 dB | Mid +1 dB | Treble +2 dB"

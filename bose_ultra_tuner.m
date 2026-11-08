@@ -1,3 +1,15 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 acid9burn
+//
+// Unofficial macOS Bluetooth RFCOMM (SPP) interoperability & user-preference utility
+// for Bose QuietComfort Ultra Headphones (PID 0x4066).
+// Developed independently via clean-room protocol observation under EU Directive
+// 2009/24/EC Arts. 5(3) & 6 (§§ 69d Abs. 3, 69e, 69g Abs. 2 UrhG), § 3 Abs. 1 Nr. 2
+// GeschGehG, § 23 Abs. 1 Nr. 3 MarkenG, and 17 U.S.C. §§ 102(b) & 1201(f).
+// Supplied strictly as non-commercial open-source software (Regulation (EU) 2024/2847
+// Recitals 15 & 18; Directive (EU) 2024/2853 Art. 2(2)). Operates solely on locally
+// paired hardware owned by the user; circumvents zero TPMs. See LEGAL.md.
+
 #import <Foundation/Foundation.h>
 #import <IOBluetooth/IOBluetooth.h>
 #include <stdio.h>
@@ -172,10 +184,10 @@ static void parseBMAPFrames(NSData *data) {
 }
 
 static void printUsage(const char *prog) {
-    printf("Bose QC Ultra (0x4066 Lonestarr) Direct BMAP NVRAM & Kalimba DSP Tuner\n");
+    printf("bose-ultra-tuner — Unofficial macOS BMAP NVRAM & DSP Interoperability Utility for Bose QC Ultra (0x4066)\n");
     printf("Usage: %s [--mac XX-XX-XX-XX-XX-XX] <command> [args...]\n\n", prog);
     printf("Commands:\n");
-    printf("  woke                           Apply the complete 'Woke' Reference NVRAM & Kalimba DSP upgrade in one shot:\n");
+    printf("  woke                           Apply the 'Woke' Reference user-preference NVRAM & DSP configuration:\n");
     printf("                                   - Hardware EQ [1.7]   : Bass -3 dB | Mid +1 dB | Treble +2 dB (B&K 5128 / Harman fix)\n");
     printf("                                   - Self Voice  [1.11]  : OFF (0x00, Persist=1) (-20.1 dB noise floor, 54.3 dB SNR)\n");
     printf("                                   - Multipoint  [1.10]  : DISABLED (0x06) (locks 16kHz mSBC / 32kHz aptX Voice, zero eSCO drops)\n");
@@ -276,7 +288,7 @@ int main(int argc, const char * argv[]) {
             }
 
         } else if ([cmd isEqualToString:@"woke"]) {
-            printf("[*] Flashing 'Woke' Reference NVRAM & Kalimba DSP Configuration...\n");
+            printf("[*] Applying 'Woke' Reference User-Preference NVRAM & DSP Configuration...\n");
             // 1. Hardware 3-Band EQ [1.7]: Bass -3 dB, Mid +1 dB, Treble +2 dB
             uint8_t txB[] = {0x01, 0x07, 0x02, 0x02, (uint8_t)-3, 0x00};
             uint8_t txM[] = {0x01, 0x07, 0x02, 0x02, (uint8_t)1,  0x01};
@@ -306,7 +318,7 @@ int main(int argc, const char * argv[]) {
             // 5. Activate Slot 4 silently via [31.3] START
             uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
-            printf("[+] 'Woke' NVRAM & Kalimba DSP profile committed to headphone flash.\n");
+            printf("[+] 'Woke' user-preference profile saved to headphone NVRAM (Partition 6).\n");
 
         } else if ([cmd isEqualToString:@"baseline"]) {
             printf("[*] Restoring Factory Baseline NVRAM Configuration...\n");

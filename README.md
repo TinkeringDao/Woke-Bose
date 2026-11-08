@@ -1,4 +1,4 @@
-# Woke Bose — Bose QuietComfort Ultra Headphones NVRAM & DSP Firmware Tuner
+# Woke Bose (`bose-ultra-tuner`) — Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra Headphones
 
 [![CI](https://github.com/acid9burn/Woke-Bose/actions/workflows/ci.yml/badge.svg)](https://github.com/acid9burn/Woke-Bose/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/acid9burn/Woke-Bose)](https://github.com/acid9burn/Woke-Bose/releases/latest)
@@ -8,9 +8,9 @@
 
 > [!IMPORTANT]
 > **Unofficial Independent Interoperability Project — Not Affiliated with Bose Corporation**
-> **Woke Bose (`bose-ultra-tuner`)** is an independent open-source macOS interoperability utility developed via clean-room observation of standard Bluetooth Serial Port Profile (RFCOMM) user-preference messages under **EU Directive 2009/24/EC Articles 5(3) & 6 (`§§ 69d Abs. 3, 69e, 69g Abs. 2 UrhG`)**, **EU Directive (EU) 2016/943 Article 3(1)(b) (`§ 3 Abs. 1 Nr. 2 GeschGehG`)**, and **17 U.S.C. § 1201(f)**. It is **not affiliated with, endorsed by, or sponsored by Bose Corporation, Qualcomm Incorporated, or Analog Devices, Inc.** It does **not** circumvent any Technological Protection Measure (TPM), does **not** modify encrypted/signed firmware partitions, and distributes **zero** proprietary binaries or cryptographic keys. See [`LEGAL.md`](LEGAL.md) for full statutory and trademark notices.
+> **`bose-ultra-tuner` ("Woke Bose")** is an independent, non-commercial free and open-source macOS interoperability utility developed via clean-room observation of standard Bluetooth Serial Port Profile (RFCOMM) user-preference messages under **EU Directive 2009/24/EC Arts. 1(2), 5(3) & 6 (`§§ 69a Abs. 2 & 5, 69d Abs. 3, 69e, 69g Abs. 2 UrhG`)**, **EU Directive (EU) 2016/943 Art. 3(1)(b) (`§ 3 Abs. 1 Nr. 2 GeschGehG`)**, **`§ 23 Abs. 1 Nr. 3 MarkenG` (`Art. 14(1)(c) EUTMR`)**, and **17 U.S.C. §§ 102(b) & 1201(f)**. It is **not affiliated with, endorsed by, or sponsored by Bose Corporation, Qualcomm Incorporated, or Analog Devices, Inc.** It operates solely on locally paired Bluetooth hardware owned by the user (`§§ 202a/202c/303a StGB` / `18 U.S.C. § 1030`), circumvents **zero** Technological Protection Measures (TPMs), leaves all encrypted/signed firmware and RF radio partitions (`PARTDATA 0..6`, EU RED `2014/53/EU` / FCC Part 15) untouched, distributes **zero** proprietary binaries or keys, and is supplied outside the course of any commercial activity (**EU Cyber Resilience Act `Regulation (EU) 2024/2847` Recitals 15 & 18; EU PLD `Directive (EU) 2024/2853` Art. 2(2)**). See [`LEGAL.md`](LEGAL.md) for full statutory and trademark notices.
 
-Direct Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) hardware NVRAM programmer, Qualcomm `APPUHDR5` firmware image analyzer, and acoustic reference calibration suite for the **Bose QuietComfort Ultra Headphones (1st Gen, `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`)**.
+Unofficial macOS Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) user-preference NVRAM & DSP interoperability client, read-only `APPUHDR5` container metadata inspector, and acoustic reference calibration suite for the **Bose QuietComfort Ultra Headphones (1st Gen, `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`)**.
 
 No Bose Music cloud account, mobile app, or telemetry connection required. All configurations are written directly into non-volatile flash (`Partition 6:EXT_RW_FS`) on the headphones' **Qualcomm QCC5181 (`OTG-QCC-384`)** SoC and **dual Analog Devices `71215 BCBZ`** ANC/DAC DSPs, persisting across power cycles and across every host device (macOS, Windows, Linux, iOS, Android).
 
@@ -50,7 +50,7 @@ make baseline
 | **Self Voice / Sidetone (`[1.11]`)** | `01 0B` (`SETGET 0x02`) | **MEDIUM** (`01 02 01 0f` / `01 02 0f`) | **OFF** (`01 00 01 0f` -> `01 00 0f`, `Persist=1`) | Shuts off the real-time exterior ambient mic loopback into the earcups and HFP uplink mixer during calls |
 | **Multipoint Connection (`[1.10]`)** | `01 0A` (`SETGET 0x02`) | **ENABLED** (`0x05` write -> `0x07` status, `bit0 = 1`) | **DISABLED** (`0x00` write -> `0x06` status, `bit0 = 0`) | Prevents dual-ACL air-time contention that forces HFP fallback to `8,000 Hz` narrowband `CVSD`; locks `16,000 Hz` wideband `mSBC` |
 | **Active Audio Mode (`[31.3]`)** | `1F 03` (`START 0x05`) | **Slot `0` ("Quiet")**<br>Payload: `00 00` | **Slot `4` ("Woke Studio")**<br>Payload: `04 00` | Switches active NVRAM mode slot to dedicated zero-ANC-feedback reference profile |
-| **Custom Mode Slot 4 Config (`[31.6]`)** | `1F 06` (`SETGET 0x02`) | Unconfigured / Inactive (`CNC=10/10`, `WindBlock=ON`) | **CNC `0/10` (`0x00`), AutoCNC `0`, Spatial `Off` (`0x00`), WindBlock `OFF` (`0x00`)** | Frees all 6 per-cup MEMS mics from counter-phase ANC modulation and unlocks the `400 Hz` WindBlock high-pass mute gate |
+| **Custom Mode Slot 4 Config (`[31.6]`)** | `1F 06` (`SETGET 0x02`) | Unconfigured / Inactive (`CNC=10/10`, `WindBlock=ON`) | **CNC `0/10` (`0x00`), AutoCNC `0`, Spatial `Off` (`0x00`), WindBlock `OFF` (`0x00`)** | Frees all 6 per-cup MEMS mics from counter-phase ANC modulation and disables the `400 Hz` WindBlock high-pass mute gate |
 | **Stationary Background Noise Floor** | Voice Memo Telemetry (`48 kHz` PCM) | **`-58.7 dBFS`** (10th percentile RMS) | **`-78.8 dBFS`** (10th percentile RMS) | **`-20.1 dB` (10x amplitude reduction)** in continuous room/HVAC background hiss |
 | **Active Speech RMS Level** | Voice Memo Telemetry (`48 kHz` PCM) | **`-23.3 dBFS`** (90th percentile RMS) | **`-24.5 dBFS`** (90th percentile RMS) | Consistent vocal pickup (`1.2 dB` delta) without mid-word clipping |
 | **Stationary Signal-to-Noise Ratio (SNR)** | Voice Memo Telemetry (`Speech - Noise`) | **`35.4 dB`** | **`54.3 dB`** | **`+18.9 dB` net voice-to-noise isolation gain** |
@@ -133,8 +133,8 @@ The tool automatically discovers your paired Bose QuietComfort Ultra Headphones 
 While the on-chip `[1.7]` hardware EQ (`-3 / +1 / +2 dB`) fixes the broad tonal balance directly inside the headphones' flash memory, applying a 10-band Parametric EQ on your host device corrects the narrow-band acoustic resonances of the 35mm angled transducers.
 
 Ready-to-import presets are located in [`peq/`](peq/):
-- **[`peq/bose_qc_ultra_bk5128_reference.txt`](peq/bose_qc_ultra_bk5128_reference.txt)** — **Brüel & Kjær 5128 Diffuse Field (`-1 dB/oct` Reference Target)** (`Preamp: -4.2 dB`). Recommended for studio monitoring and acoustic realism.
-- **[`peq/bose_qc_ultra_gras_harman2018.txt`](peq/bose_qc_ultra_gras_harman2018.txt)** — **GRAS 43AG Harman Over-Ear 2018 Target** (`Preamp: -4.9 dB`).
+- **[`peq/bose_qc_ultra_bk5128_reference.txt`](peq/bose_qc_ultra_bk5128_reference.txt)** — **Brüel & Kjær 5128 Diffuse Field (`-1 dB/oct` Reference Target)** (`Preamp: -2.9 dB`). Recommended for studio monitoring and acoustic realism.
+- **[`peq/bose_qc_ultra_gras_harman2018.txt`](peq/bose_qc_ultra_gras_harman2018.txt)** — **GRAS 43AG Harman Over-Ear 2018 Target** (`Preamp: -2.4 dB`).
 
 Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace** (Windows), **EasyEffects / PipeWire** (Linux), **Poweramp Equalizer / Wavelet** (Android).
 
@@ -142,14 +142,14 @@ Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace*
 
 ## Repository Structure & Documentation
 
-- [`bose_ultra_tuner.m`](bose_ultra_tuner.m) — Native Objective-C macOS `IOBluetooth` RFCOMM BMAP programmer and `[5.17]` Q1.31 biquad inspector.
+- [`bose_ultra_tuner.m`](bose_ultra_tuner.m) — Native Objective-C macOS `IOBluetooth` RFCOMM user-preference NVRAM & DSP interoperability client and `[5.17]` Q1.31 biquad inspector.
 - [`bose-ultra-wizard.sh`](bose-ultra-wizard.sh) — Interactive terminal wizard for 1-click `Woke` calibration, `Baseline` restore, macOS bitpool tuning, and register scanning.
-- [`parse_appuhdr5.py`](parse_appuhdr5.py) — Python analyzer for `APPUHDR5` firmware container headers (`OTP_PROD` fuse checks, partition table extraction, Shannon entropy verification).
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Deep-dive hardware BOM (`QCC5181`, `2x ADI 71215 BCBZ`, `STM32U585OI`, `PSoC 4000S`), `APPUHDR5` partition map, and BMAP protocol specification.
+- [`parse_appuhdr5.py`](parse_appuhdr5.py) — Read-only structural TLV header and Shannon entropy inspector for `APPUHDR5` containers (`<REDACTED_OEM_BYTES>`; performs zero decryption, key extraction, or binary modification).
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Deep-dive hardware BOM (`QCC5181`, `2x ADI 71215 BCBZ`, `STM32U585OI`, `PSoC 4000S`), `APPUHDR5` structural partition map, and BMAP protocol specification.
 - [`GLOSSARY.md`](GLOSSARY.md) — Hardware, firmware, and acoustic terminology reference.
-- [`LEGAL.md`](LEGAL.md) — Statutory interoperability notices (`§§ 69d/69e UrhG`, `17 U.S.C. § 1201(f)`), non-circumvention statement, and trademark nominative fair use disclaimer.
+- [`LEGAL.md`](LEGAL.md) — Statutory interoperability notices (`§§ 69a/69d/69e/69g UrhG`, `§ 3 Abs. 1 Nr. 2 GeschGehG`, `§ 23 Abs. 1 Nr. 3 MarkenG`, `§§ 202c/303a StGB`, `Regulation (EU) 2024/2847` Recital 18, `17 U.S.C. §§ 102(b) & 1201(f)`), non-circumvention statement, and RF regulatory notice.
 - [`SECURITY.md`](SECURITY.md) — Partition 6 (`EXT_RW_FS`) NVRAM safety boundaries and vulnerability disclosure policy.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) & [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor guidelines and zero-warning compiler standards.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) & [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor guidelines, clean-room rules, and zero-warning compiler standards.
 - [`AGENTS.md`](AGENTS.md) — Minimal context pointers for AI coding agents.
 - [`peq/`](peq/) — 10-band Parametric EQ presets for B&K 5128 Diffuse Field and GRAS Harman 2018 targets.
 
@@ -157,9 +157,9 @@ Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace*
 
 ## Legal, Trademark, & Interoperability Notice
 
-- **Non-Affiliation & Nominative Fair Use:** "Bose", "QuietComfort", "CustomTune", and "ActiveSense" are registered trademarks of Bose Corporation. "Qualcomm", "QCC5181", and "Kalimba" are registered trademarks of Qualcomm Incorporated. "Analog Devices" is a registered trademark of Analog Devices, Inc. All product names are referenced solely for nominative fair use to indicate hardware compatibility (`PID 0x4066`).
-- **Interoperability & Non-Circumvention:** Developed independently for desktop interoperability under **EU Directive 2009/24/EC (`§§ 69d Abs. 3, 69e, 69g Abs. 2 UrhG`)**, **`§ 3 Abs. 1 Nr. 2 GeschGehG`**, and **17 U.S.C. § 1201(f)**. Zero Technological Protection Measures (TPMs) are circumvented (`17 U.S.C. § 1201(a)` / `§ 95a UrhG`), and zero proprietary firmware binaries or keys are distributed.
-- **No Warranty:** Provided **"AS IS"** under the [MIT License](LICENSE). See [`LEGAL.md`](LEGAL.md) for complete terms.
+- **Non-Affiliation & Intended Purpose (`§ 23 Abs. 1 Nr. 3 MarkenG` / `Art. 14(1)(c) EUTMR` / Nominative Fair Use):** "Bose", "QuietComfort", "CustomTune", and "ActiveSense" are registered trademarks of Bose Corporation. "Qualcomm", "QCC5181", and "Kalimba" are registered trademarks of Qualcomm Incorporated. "Analog Devices" is a registered trademark of Analog Devices, Inc. All product names are referenced solely to indicate hardware compatibility (`PID 0x4066`).
+- **Interoperability, Non-Circumvention, & Owner-Only Scope:** Developed independently for desktop interoperability under **EU Directive 2009/24/EC (`§§ 69a Abs. 2 & 5, 69d Abs. 3, 69e, 69g Abs. 2 UrhG`)**, **`§ 3 Abs. 1 Nr. 2 GeschGehG`**, and **17 U.S.C. §§ 102(b) & 1201(f)** (*Sega v. Accolade*, *Chamberlain v. Skylink*). Operates strictly on locally paired Bluetooth peripherals owned by the user (`§§ 202a/202c/303a StGB` / `18 U.S.C. § 1030`). Zero Technological Protection Measures (TPMs) are circumvented (`17 U.S.C. § 1201(a)` / `§ 95a UrhG`), zero RF parameters are modified (`EU RED 2014/53/EU` / `FCC Part 15`), and zero proprietary firmware binaries or keys are distributed.
+- **Non-Commercial Open-Source Exemption & No Warranty:** Supplied strictly outside the course of any commercial activity (**EU Cyber Resilience Act `Regulation (EU) 2024/2847` Recitals 15 & 18; EU Product Liability Directive `Directive (EU) 2024/2853` Art. 2(2)**) and provided **"AS IS"** under the [MIT License](LICENSE). See [`LEGAL.md`](LEGAL.md) for complete terms.
 
 ---
 
