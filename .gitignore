@@ -1,0 +1,8 @@
+bose-ultra-tuner
+*.o
+*.dSYM/
+*.wav
+*.m4a
+*.bin
+.DS_Store
+.scratch/
