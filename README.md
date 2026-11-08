@@ -1,4 +1,4 @@
-# Bose QuietComfort Ultra Headphones — "Woke" NVRAM & DSP Firmware Tuner
+# Woke Bose — Bose QuietComfort Ultra Headphones NVRAM & DSP Firmware Tuner
 
 Direct Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) hardware NVRAM programmer, Qualcomm `APPUHDR5` firmware image analyzer, and acoustic reference calibration suite for the **Bose QuietComfort Ultra Headphones (1st Gen, `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`)**.
 
