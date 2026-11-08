@@ -1,0 +1,104 @@
+# Bose QuietComfort Ultra (`0x4066` `Lonestarr`) — Hardware, Firmware & BMAP Architecture
+
+See [`GLOSSARY.md`](../GLOSSARY.md) for canonical domain definitions.
+
+---
+
+## 1. Silicon Bill of Materials & End-to-End Audio Pipeline
+
+The Bose QuietComfort Ultra Headphones (`PID 0x4066` / `16486`, codename `Lonestarr`, platform `OTG-QCC-384`) split processing across four distinct ICs:
+
+```text
+[Bluetooth 5.3 A2DP (aptX Lossless 16/44.1, aptX Adaptive 24/48, AAC, SBC)]
+   OR [2.5mm Analog Line-In -> Integrated 24-bit/48kHz ADC (Clips > 1.0 Vrms)]
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 1. Qualcomm QCC5181 (S5 Gen 2 Sound Platform — "OTG-QCC-384")           │
+│    ├─ Apps P0 (80 MHz 32-bit): Bluetooth 5.3 baseband, A2DP/eSCO TDM    │
+│    ├─ Apps P1 (80 MHz 32-bit): Bose BMAP server, NVRAM PS Keys (Part 6) │
+│    └─ Dual 240 MHz 32-bit Kalimba DSPs (1.4 MB Data RAM / 384 KB PRAM): │
+│        ├─ 6-Stage Q1.31 Hardware Biquad Bank ([5.17] driven by [1.7])   │
+│        ├─ CustomTune ear-canal transfer-function calibration            │
+│        ├─ 3-Mic Qualcomm cVc uplink beamformer & spectral subtraction   │
+│        └─ Bose Immersive Audio HRTF convolution (fed by STM32U585OI)    │
+└──────┬──────────────────────────────────────────────────────────────────┘
+       │ 24-bit / 48 kHz Digital TDM / I2S Bus
+       ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 2. Dual Analog Devices Custom ANC DSPs (2x ADI "71215 BCBZ")            │
+│    ├─ Ingests 12 MEMS Microphones (6 per earcup: FF, FB, & voice array) │
+│    ├─ Microsecond-latency Feedforward + Feedback anti-noise synthesis   │
+│    ├─ Aware Mode / ActiveSense dynamic transparency mixing              │
+│    └─ 24-bit Differential DAC + Class-D Amplification                   │
+└──────┬──────────────────────────────────────────────────────────────────┘
+       │ Differential Analog Drive
+       ▼
+[Left & Right 35mm Angled Dynamic Transducers]
+
+Supporting Controllers:
+  3. STMicroelectronics STM32U585OI (ARM Cortex-M33 + FPU + TrustZone):
+     Power rail sequencing & 6-axis IMU sensor fusion for Immersive Audio.
+  4. Infineon PSoC 4000S:
+     Capacitive volume strip (button_id = 0x80) & on-head proximity sensing.
+```
+
+---
+
+## 2. `APPUHDR5` Firmware Container Anatomy (`1.6.7+g6ebabd2`)
+
+Official Bose OTA image: `https://ota.cdn.bose.io/f840a774-76ba-41be-b51e-e04848ff638a.bin/f840a774-76ba-41be-b51e-e04848ff638a.bin`
+- **Size:** `7,075,178` bytes (`0x6bf56a`)
+- **CRC32:** `0xAF34965B`
+- **SHA-256:** `50b00bc1e62c2b6709b0e9714842d7696ab53dd1c8b61c2c4f500150df127882`
+
+Parsed via [`parse_appuhdr5.py`](../parse_appuhdr5.py):
+
+| Chunk / Index | File Offset | Part ID | Qualcomm ADK Role (`IMAGE_SECTION_ID`) | Payload Bytes | 16B AES Blocks | Shannon Entropy | First 16 Bytes (Hex) |
+| :--- | :--- | :--- | :--- | ---: | ---: | ---: | :--- |
+| **`APPUHDR5`** | `0x000000` | Header | `VR:\x01\x06\x07` `PRODUCT:LoneStarr\x00` `OTP_PROD\x00\x01` | `34` | N/A | Plaintext | `56523a01060750524f445543543a4c6f` |
+| **`PARTDATA` 0** | `0x00002e` | `0x0000` | `IMAGE_SECTION_NONCE` (128-bit AES-CTR IV) | `16` | `1` | `3.875000` | `4ef68de62f55e6b872d0acbed5792285` |
+| **`PARTDATA` 1** | `0x00004e` | `0x0001` | `IMAGE_SECTION_APPS_P0_HEADER` (Flash layout & hash table) | `560` | `35` | `7.669410` | `53789ff392839ed858cd9f8dcbb6e16d` |
+| **`PARTDATA` 2** | `0x00028e` | `0x0004` | `IMAGE_SECTION_CURATOR_FILESYSTEM` (Radio/boot patches) | `4,672` | `292` | `7.959534` | `f645bf6735879f127a67e1be4da4f1be` |
+| **`PARTDATA` 3** | `0x0014de` | `0x0005` | `IMAGE_SECTION_APPS_P0_IMAGE` (Qualcomm BT/system stack) | `592,256` | `37,016` | `7.999712` | `82b98e0864b63e808b1f1ff2fb5344b0` |
+| **`PARTDATA` 4** | `0x091e6e` | `0x0006` | `IMAGE_SECTION_APPS_RO_CONFIG_FILESYSTEM` (PS Keys / config) | `93,712` | `5,857` | `7.997897` | `d31a6f34fad9c1b1dc571fae97738f93` |
+| **`PARTDATA` 5** | `0x0a8c8e` | `0x0007` | `IMAGE_SECTION_APPS_RO_FILESYSTEM` (Kalimba `.kap` DSP & ANC) | `4,266,464` | `266,654` | `7.999958` | `ef9a83f6dd37a11c7829f69a2ef65eff` |
+| **`PARTDATA` 6** | `0x4ba67e` | `0x0009` | `IMAGE_SECTION_APPS_P1_IMAGE` (Bose application & BMAP server) | `2,117,072` | `132,317` | `7.999904` | `3eedeebc2938aa567a6a9f01a461a526` |
+| **`APPUPFTR`** | `0x6bf45e` | Footer | 2048-bit (`256 B`) RSA-PSS signature verified against OTP eFuse | `256` | N/A | `7.197566` | `163cab7e22a33d132597e700c59ea1d3` |
+
+### Why Direct BMAP NVRAM Programming Replaces Binary Patching
+Because `OTP_PROD = 0x0001` enforces hardware AES-128-CTR encryption across all `442,172` blocks (`7.9999` bits/byte entropy) and verifies the `2048-bit` RSA-PSS footer inside the `QCC5181` Mask ROM before commit, static binary modification is rejected with BMAP Error `0x02` (`Invalid Checksum`) or `-9` (`FIRMWARE_CORRUPT`). However, the running `Apps P1` firmware exposes an **unauthenticated `SETGET` (`0x02`) and `START` (`0x05`)** control channel over Bluetooth RFCOMM Channel 2 (`00000000-deca-fade-deca-deafdecacaff`) that writes directly into the headphone's persistent NVRAM (`Partition 6` PS Keys) and live Kalimba DSP registers.
+
+---
+
+## 3. On-Device BMAP Function Blocks & Register Map (`0x4066` `Lonestarr`)
+
+Enumerated live from hardware via `./bose-ultra-tuner scan`:
+
+### 3.1 Supported Function Blocks (`0x00`–`0x1F`)
+- `0x00` (`ProductInfo` v1.1.0)
+- `0x01` (`Settings` v1.1.0)
+- `0x02` (`Status` v1.1.0)
+- `0x03` (`FirmwareUpdate` v1.2.0)
+- `0x04` (`DeviceManagement` v1.1.0)
+- `0x05` (`AudioManagement` v1.1.0)
+- `0x06` (`CallManagement` v1.1.0)
+- `0x07` (`Control` v1.1.0)
+- `0x09` (`Notification` v1.1.0)
+- `0x0D` (`DataCollection` v1.1.0)
+- `0x12` (`Authentication` v1.1.0 — Cloud ECDH P-384)
+- `0x1F` (`AudioModes` v1.0.0)
+
+### 3.2 `AudioManagement [5.17]` (`0x05, 0x11`) — 6-Stage Q1.31 Hardware Biquad Table
+`GET` `05 11 01 00` returns `98` bytes (`00 06` header + `6 x 16-byte` signed Q1.31 fixed-point biquad stages where `0x7fffffff` = `+1.0` unity gain):
+
+```text
+Header : 00 06 (6 Biquad Stages)
+Stage 0: 00000000 00000000 fe08aefc 7ffc115c  <- Low-shelf biquad driven by [1.7] Bass
+Stage 1: 00000000 00000000 00000000 7fffffff  <- Unity bypass (1.0)
+Stage 2: 00000000 00000000 00000000 7fffffff  <- Unity bypass (1.0)
+Stage 3: f315b575 fbc792d2 00000000 7f46dc5c  <- Mid/High biquad driven by [1.7] Mid/Treble
+Stage 4: 00000000 00000000 00000000 7fffffff  <- Unity bypass (1.0)
+Stage 5: 00000000 00000000 00000000 7fffffff  <- Unity bypass (1.0)
+```
+*(Direct `SETGET` writes to `[5.17]` return `BMAP ERROR 0x05 OpNotSupp`; the Kalimba DSP recomputes `[5.17]` automatically whenever `[1.7]` `Settings.RangeControl` is updated via `01 07 02 02 <val:i8> <band:u8>`).*

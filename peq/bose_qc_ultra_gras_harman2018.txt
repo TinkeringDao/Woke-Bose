@@ -1,0 +1,16 @@
+# Bose QuietComfort Ultra Headphones (0x4066 Lonestarr, FW 1.6.7)
+# Profile B: Harman Over-Ear 2018 Target (GRAS 43AG — Maximum Anti-Bloat & Sibilance Cut)
+# Prerequisite: Set on-device Bose 3-Band EQ [1.7] to 0, 0, 0 (`./bose-ultra-tuner pimp-audio flat`)
+# and disable Immersive Audio (`Spatial = 0`).
+
+Preamp: -2.4 dB
+Filter 1: ON LSC Fc 105 Hz Gain -9.4 dB Q 0.70
+Filter 2: ON PK Fc 32 Hz Gain -3.4 dB Q 2.17
+Filter 3: ON PK Fc 163 Hz Gain -3.6 dB Q 0.72
+Filter 4: ON PK Fc 415 Hz Gain 3.1 dB Q 0.67
+Filter 5: ON PK Fc 821 Hz Gain 1.2 dB Q 2.91
+Filter 6: ON PK Fc 1240 Hz Gain -2.9 dB Q 3.26
+Filter 7: ON PK Fc 2923 Hz Gain 1.7 dB Q 1.01
+Filter 8: ON PK Fc 6284 Hz Gain -5.2 dB Q 5.35
+Filter 9: ON PK Fc 9184 Hz Gain 2.7 dB Q 4.30
+Filter 10: ON HSC Fc 10000 Hz Gain -1.5 dB Q 0.70
