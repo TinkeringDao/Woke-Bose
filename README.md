@@ -126,23 +126,7 @@ Ready-to-import presets are located in [`peq/`](file:///Users/satori/Documents/D
 - **[`peq/bose_qc_ultra_bk5128_reference.txt`](file:///Users/satori/Documents/Development/Headphones/peq/bose_qc_ultra_bk5128_reference.txt)** — **Brüel & Kjær 5128 Diffuse Field (`-1 dB/oct` Reference Target)** (`Preamp: -4.2 dB`). Recommended for studio monitoring and acoustic realism.
 - **[`peq/bose_qc_ultra_gras_harman2018.txt`](file:///Users/satori/Documents/Development/Headphones/peq/bose_qc_ultra_gras_harman2018.txt)** — **GRAS 43AG Harman Over-Ear 2018 Target** (`Preamp: -4.9 dB`).
 
-Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace** (Windows), **EasyEffects / PipeWire** (Linux), **Poweramp Equalizer / Wavelet** (Android), **Qudelix-5K** (iOS/macOS/Windows/Android hardware DSP).
-
----
-
-## Optional Wireless Hardware Upgrades (Bypassing Physics Limits)
-
-Because the Bose QC Ultra microphones are mounted flush on the earcups `14 cm` behind the mouth, impulsive room transients (hand claps, mechanical keyboard clicks `<0.5 ms`) reach the earcups at nearly the same acoustic pressure as your voice (`~16 dB` physical loss vs. a boom mic `2 cm` from the lips). Furthermore, macOS CoreBluetooth restricts third-party headphones to `AAC` (`256 kbps`) / `SBC` (`345–512 kbps`) and `16 kHz` `mSBC` call audio.
-
-To upgrade wireless audio and microphone physics beyond earcup limits:
-
-1. **Wireless Boom Microphone (`+35 dB` Physical Speech-to-Noise Gain)**:
-   - [Antlion Audio ModMic Wireless](https://antlionaudio.com/products/modmic-wireless) — Attaches magnetically to the Bose QC Ultra earcup, places a unidirectional cardioid capsule `2 cm` from your mouth, and transmits uncompressed `16-bit / 48 kHz` `aptX Low Latency` audio to its USB receiver (keeps Bose QC Ultra in pure stereo playback mode during calls).
-2. **Wireless Snapdragon Sound / `aptX Adaptive` (`24-bit / 96 kHz` at `620 kbps`) & `aptX Voice` (`32 kHz` Super-Wideband Calls) USB-C Transmitters**:
-   - [Creative BT-W6 (USB-C Snapdragon Sound Transmitter)](https://us.creative.com/p/accessories/creative-bt-w6) — Unlocks `aptX Lossless` / `aptX Adaptive` (`24-bit/96 kHz`) and `32 kHz` `aptX Voice` super-wideband calls natively with the Bose QC Ultra's `QCC5181` radio.
-   - [Sennheiser BTD 600 (USB-A / USB-C `aptX Adaptive` Dongle)](https://www.sennheiser-hearing.com/en-US/p/btd-600/) — Plug-and-play `aptX Adaptive` (`24-bit/96 kHz`) transmitter with hardware mute button.
-3. **Clip-On Wireless 20-Band Hardware DSP + Dual ES9219C DAC (`2.5mm` TRS -> `3.5mm` Cable to Earcup)**:
-   - [Qudelix-5K Reference DAC/AMP](https://www.qudelix.com/products/qudelix-5k-dac-amp) — Clips onto the headband or collar, receives `LDAC` (`990 kbps`) or `aptX Adaptive`, runs the 10-band Parametric EQ in hardware `64-bit` double-precision DSP, and feeds the Bose `2.5mm` analog input via Dual ESS Sabre `ES9219C` DACs while the Bose `71215 BCBZ` chips still provide full active noise cancellation.
+Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace** (Windows), **EasyEffects / PipeWire** (Linux), **Poweramp Equalizer / Wavelet** (Android).
 
 ---
 
