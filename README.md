@@ -6,6 +6,10 @@
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS%20(IOBluetooth)-black)](bose_ultra_tuner.m)
 [![Hardware: PID 0x4066 (QCC5181)](https://img.shields.io/badge/Hardware-0x4066%20Lonestarr%20(1.6.7)-teal)](docs/ARCHITECTURE.md)
 
+> [!IMPORTANT]
+> **Unofficial Independent Interoperability Project — Not Affiliated with Bose Corporation**
+> **Woke Bose (`bose-ultra-tuner`)** is an independent open-source macOS interoperability utility developed via clean-room observation of standard Bluetooth Serial Port Profile (RFCOMM) user-preference messages under **EU Directive 2009/24/EC Articles 5(3) & 6 (`§§ 69d Abs. 3, 69e, 69g Abs. 2 UrhG`)**, **EU Directive (EU) 2016/943 Article 3(1)(b) (`§ 3 Abs. 1 Nr. 2 GeschGehG`)**, and **17 U.S.C. § 1201(f)**. It is **not affiliated with, endorsed by, or sponsored by Bose Corporation, Qualcomm Incorporated, or Analog Devices, Inc.** It does **not** circumvent any Technological Protection Measure (TPM), does **not** modify encrypted/signed firmware partitions, and distributes **zero** proprietary binaries or cryptographic keys. See [`LEGAL.md`](LEGAL.md) for full statutory and trademark notices.
+
 Direct Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) hardware NVRAM programmer, Qualcomm `APPUHDR5` firmware image analyzer, and acoustic reference calibration suite for the **Bose QuietComfort Ultra Headphones (1st Gen, `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`)**.
 
 No Bose Music cloud account, mobile app, or telemetry connection required. All configurations are written directly into non-volatile flash (`Partition 6:EXT_RW_FS`) on the headphones' **Qualcomm QCC5181 (`OTG-QCC-384`)** SoC and **dual Analog Devices `71215 BCBZ`** ANC/DAC DSPs, persisting across power cycles and across every host device (macOS, Windows, Linux, iOS, Android).
@@ -128,9 +132,9 @@ The tool automatically discovers your paired Bose QuietComfort Ultra Headphones 
 
 While the on-chip `[1.7]` hardware EQ (`-3 / +1 / +2 dB`) fixes the broad tonal balance directly inside the headphones' flash memory, applying a 10-band Parametric EQ on your host device corrects the narrow-band acoustic resonances of the 35mm angled transducers.
 
-Ready-to-import presets are located in [`peq/`](file:///Users/satori/Documents/Development/Headphones/peq/):
-- **[`peq/bose_qc_ultra_bk5128_reference.txt`](file:///Users/satori/Documents/Development/Headphones/peq/bose_qc_ultra_bk5128_reference.txt)** — **Brüel & Kjær 5128 Diffuse Field (`-1 dB/oct` Reference Target)** (`Preamp: -4.2 dB`). Recommended for studio monitoring and acoustic realism.
-- **[`peq/bose_qc_ultra_gras_harman2018.txt`](file:///Users/satori/Documents/Development/Headphones/peq/bose_qc_ultra_gras_harman2018.txt)** — **GRAS 43AG Harman Over-Ear 2018 Target** (`Preamp: -4.9 dB`).
+Ready-to-import presets are located in [`peq/`](peq/):
+- **[`peq/bose_qc_ultra_bk5128_reference.txt`](peq/bose_qc_ultra_bk5128_reference.txt)** — **Brüel & Kjær 5128 Diffuse Field (`-1 dB/oct` Reference Target)** (`Preamp: -4.2 dB`). Recommended for studio monitoring and acoustic realism.
+- **[`peq/bose_qc_ultra_gras_harman2018.txt`](peq/bose_qc_ultra_gras_harman2018.txt)** — **GRAS 43AG Harman Over-Ear 2018 Target** (`Preamp: -4.9 dB`).
 
 Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace** (Windows), **EasyEffects / PipeWire** (Linux), **Poweramp Equalizer / Wavelet** (Android).
 
@@ -138,16 +142,27 @@ Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace*
 
 ## Repository Structure & Documentation
 
-- [`bose_ultra_tuner.m`](file:///Users/satori/Documents/Development/Headphones/bose_ultra_tuner.m) — Native Objective-C macOS `IOBluetooth` RFCOMM BMAP programmer and `[5.17]` Q1.31 biquad inspector.
-- [`bose-ultra-wizard.sh`](file:///Users/satori/Documents/Development/Headphones/bose-ultra-wizard.sh) — Interactive terminal wizard for 1-click `Woke` calibration, `Baseline` restore, macOS bitpool tuning, and USB recovery.
-- [`parse_appuhdr5.py`](file:///Users/satori/Documents/Development/Headphones/parse_appuhdr5.py) — Python analyzer for Bose `APPUHDR5` OTA firmware images (`OTP_PROD` fuse checks, partition table extraction, Shannon entropy verification).
-- [`docs/ARCHITECTURE.md`](file:///Users/satori/Documents/Development/Headphones/docs/ARCHITECTURE.md) — Deep-dive hardware BOM (`QCC5181`, `2x ADI 71215 BCBZ`, `STM32U585OI`, `PSoC 4000S`), `APPUHDR5` partition map, and BMAP protocol specification.
-- [`GLOSSARY.md`](file:///Users/satori/Documents/Development/Headphones/GLOSSARY.md) — Hardware, firmware, and acoustic terminology reference.
-- [`AGENTS.md`](file:///Users/satori/Documents/Development/Headphones/AGENTS.md) — Minimal context pointers for AI coding agents.
-- [`peq/`](file:///Users/satori/Documents/Development/Headphones/peq/) — 10-band Parametric EQ presets for B&K 5128 Diffuse Field and GRAS Harman 2018 targets.
+- [`bose_ultra_tuner.m`](bose_ultra_tuner.m) — Native Objective-C macOS `IOBluetooth` RFCOMM BMAP programmer and `[5.17]` Q1.31 biquad inspector.
+- [`bose-ultra-wizard.sh`](bose-ultra-wizard.sh) — Interactive terminal wizard for 1-click `Woke` calibration, `Baseline` restore, macOS bitpool tuning, and register scanning.
+- [`parse_appuhdr5.py`](parse_appuhdr5.py) — Python analyzer for `APPUHDR5` firmware container headers (`OTP_PROD` fuse checks, partition table extraction, Shannon entropy verification).
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Deep-dive hardware BOM (`QCC5181`, `2x ADI 71215 BCBZ`, `STM32U585OI`, `PSoC 4000S`), `APPUHDR5` partition map, and BMAP protocol specification.
+- [`GLOSSARY.md`](GLOSSARY.md) — Hardware, firmware, and acoustic terminology reference.
+- [`LEGAL.md`](LEGAL.md) — Statutory interoperability notices (`§§ 69d/69e UrhG`, `17 U.S.C. § 1201(f)`), non-circumvention statement, and trademark nominative fair use disclaimer.
+- [`SECURITY.md`](SECURITY.md) — Partition 6 (`EXT_RW_FS`) NVRAM safety boundaries and vulnerability disclosure policy.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) & [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor guidelines and zero-warning compiler standards.
+- [`AGENTS.md`](AGENTS.md) — Minimal context pointers for AI coding agents.
+- [`peq/`](peq/) — 10-band Parametric EQ presets for B&K 5128 Diffuse Field and GRAS Harman 2018 targets.
+
+---
+
+## Legal, Trademark, & Interoperability Notice
+
+- **Non-Affiliation & Nominative Fair Use:** "Bose", "QuietComfort", "CustomTune", and "ActiveSense" are registered trademarks of Bose Corporation. "Qualcomm", "QCC5181", and "Kalimba" are registered trademarks of Qualcomm Incorporated. "Analog Devices" is a registered trademark of Analog Devices, Inc. All product names are referenced solely for nominative fair use to indicate hardware compatibility (`PID 0x4066`).
+- **Interoperability & Non-Circumvention:** Developed independently for desktop interoperability under **EU Directive 2009/24/EC (`§§ 69d Abs. 3, 69e, 69g Abs. 2 UrhG`)**, **`§ 3 Abs. 1 Nr. 2 GeschGehG`**, and **17 U.S.C. § 1201(f)**. Zero Technological Protection Measures (TPMs) are circumvented (`17 U.S.C. § 1201(a)` / `§ 95a UrhG`), and zero proprietary firmware binaries or keys are distributed.
+- **No Warranty:** Provided **"AS IS"** under the [MIT License](LICENSE). See [`LEGAL.md`](LEGAL.md) for complete terms.
 
 ---
 
 ## License
 
-MIT License — see [`LICENSE`](file:///Users/satori/Documents/Development/Headphones/LICENSE).
+MIT License — see [`LICENSE`](LICENSE).

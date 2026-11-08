@@ -170,11 +170,10 @@ def parse_container(filepath: Path) -> dict:
 
 
 def main():
-    target = Path(
-        sys.argv[1]
-        if len(sys.argv) > 1
-        else "/Users/satori/.gemini/antigravity/brain/fb2e6858-b0cb-410a-b890-698878bb7cce/scratch/lonestarr_1.6.7.bin"
-    )
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print(f"Usage: {sys.argv[0]} <path-to-appuhdr5-firmware.bin>")
+        sys.exit(0)
+    target = Path(sys.argv[1])
     report = parse_container(target)
     print(json.dumps(report, indent=2))
 

@@ -47,7 +47,7 @@ Supporting Controllers:
 
 ## 2. `APPUHDR5` Firmware Container Anatomy (`1.6.7+g6ebabd2`)
 
-Official Bose OTA image: `https://ota.cdn.bose.io/f840a774-76ba-41be-b51e-e04848ff638a.bin/f840a774-76ba-41be-b51e-e04848ff638a.bin`
+Container metadata for firmware revision `1.6.7+g6ebabd2` (inspected locally; no proprietary firmware binaries are hosted or distributed in this repository):
 - **Size:** `7,075,178` bytes (`0x6bf56a`)
 - **CRC32:** `0xAF34965B`
 - **SHA-256:** `50b00bc1e62c2b6709b0e9714842d7696ab53dd1c8b61c2c4f500150df127882`
@@ -66,8 +66,8 @@ Parsed via [`parse_appuhdr5.py`](../parse_appuhdr5.py):
 | **`PARTDATA` 6** | `0x4ba67e` | `0x0009` | `IMAGE_SECTION_APPS_P1_IMAGE` (Bose application & BMAP server) | `2,117,072` | `132,317` | `7.999904` | `3eedeebc2938aa567a6a9f01a461a526` |
 | **`APPUPFTR`** | `0x6bf45e` | Footer | 2048-bit (`256 B`) RSA-PSS signature verified against OTP eFuse | `256` | N/A | `7.197566` | `163cab7e22a33d132597e700c59ea1d3` |
 
-### Why Direct BMAP NVRAM Programming Replaces Binary Patching
-Because `OTP_PROD = 0x0001` enforces hardware AES-128-CTR encryption across all `442,172` blocks (`7.9999` bits/byte entropy) and verifies the `2048-bit` RSA-PSS footer inside the `QCC5181` Mask ROM before commit, static binary modification is rejected with BMAP Error `0x02` (`Invalid Checksum`) or `-9` (`FIRMWARE_CORRUPT`). However, the running `Apps P1` firmware exposes an **unauthenticated `SETGET` (`0x02`) and `START` (`0x05`)** control channel over Bluetooth RFCOMM Channel 2 (`00000000-deca-fade-deca-deafdecacaff`) that writes directly into the headphone's persistent NVRAM (`Partition 6` PS Keys) and live Kalimba DSP registers.
+### Why Direct Bluetooth SPP User-Preference Configuration Leaves Signed Firmware Untouched
+Because `OTP_PROD = 0x0001` enforces hardware AES-128-CTR encryption across all `442,172` blocks (`7.9999` bits/byte entropy) and verifies the `2048-bit` RSA-PSS footer inside the `QCC5181` Mask ROM before commit, executable code partitions (`0..5`) are cryptographically immutable. For host interoperability, the running `Apps P1` firmware exposes standard plaintext `GET` (`0x01`), `SETGET` (`0x02`), and `START` (`0x05`) user-preference messages over Bluetooth RFCOMM Channel 2 (`00000000-deca-fade-deca-deafdecacaff`), configuring the headphone's persistent user-settings NVRAM (`Partition 6` PS Keys) and active Kalimba DSP EQ registers without modifying or circumventing any signed firmware partition.
 
 ---
 
