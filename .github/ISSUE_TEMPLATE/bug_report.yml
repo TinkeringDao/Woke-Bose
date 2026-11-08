@@ -1,0 +1,33 @@
+name: Bug Report / BMAP Register Issue
+description: Report a BMAP framing issue, firmware incompatibility, or RFCOMM connection failure
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do **not** include personal Bluetooth MAC addresses or hardware serial numbers in your report.
+  - type: input
+    id: firmware
+    attributes:
+      label: Headphones Firmware Version & Product ID
+      description: Output of `./bose-ultra-tuner status` (line 1)
+      placeholder: "1.6.7+g6ebabd2 (PID 0x4066)"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS Version & Architecture
+      description: Output of `sw_vers` and `uname -m`
+      placeholder: "macOS 15.x (arm64)"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Terminal / BMAP Hex Output
+      description: Paste the terminal output (redact MAC and serial number)
+      render: text
+    validations:
+      required: true

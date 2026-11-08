@@ -1,5 +1,11 @@
 # Woke Bose — Bose QuietComfort Ultra Headphones NVRAM & DSP Firmware Tuner
 
+[![CI](https://github.com/acid9burn/Woke-Bose/actions/workflows/ci.yml/badge.svg)](https://github.com/acid9burn/Woke-Bose/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/acid9burn/Woke-Bose)](https://github.com/acid9burn/Woke-Bose/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform: macOS](https://img.shields.io/badge/Platform-macOS%20(IOBluetooth)-black)](bose_ultra_tuner.m)
+[![Hardware: PID 0x4066 (QCC5181)](https://img.shields.io/badge/Hardware-0x4066%20Lonestarr%20(1.6.7)-teal)](docs/ARCHITECTURE.md)
+
 Direct Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) hardware NVRAM programmer, Qualcomm `APPUHDR5` firmware image analyzer, and acoustic reference calibration suite for the **Bose QuietComfort Ultra Headphones (1st Gen, `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`)**.
 
 No Bose Music cloud account, mobile app, or telemetry connection required. All configurations are written directly into non-volatile flash (`Partition 6:EXT_RW_FS`) on the headphones' **Qualcomm QCC5181 (`OTG-QCC-384`)** SoC and **dual Analog Devices `71215 BCBZ`** ANC/DAC DSPs, persisting across power cycles and across every host device (macOS, Windows, Linux, iOS, Android).
