@@ -18,5 +18,5 @@
 ## Reporting a Vulnerability
 
 If you discover a BMAP framing bug or a register payload that causes unexpected DSP/NVRAM behavior on a specific firmware revision:
-1. Open a private security advisory via [GitHub Security Advisories](https://github.com/acid9burn/Woke-Bose/security/advisories/new).
+1. Open a private security advisory via [GitHub Security Advisories](https://github.com/TinkeringDao/Woke-Bose/security/advisories/new).
 2. Include your firmware string (`./bose-ultra-tuner status`), product ID (`0x4066`), and raw hexadecimal BMAP `TX` / `RX` dump.

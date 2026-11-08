@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Architecture & BMAP Protocol Specification
-    url: https://github.com/acid9burn/Woke-Bose/blob/main/docs/ARCHITECTURE.md
+    url: https://github.com/TinkeringDao/Woke-Bose/blob/main/docs/ARCHITECTURE.md
     about: Read the QCC5181 / ADI 71215 BCBZ hardware architecture and BMAP register reference

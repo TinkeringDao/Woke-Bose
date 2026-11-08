@@ -1,7 +1,7 @@
 # Woke Bose (`bose-ultra-tuner`) — Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra Headphones
 
-[![CI](https://github.com/acid9burn/Woke-Bose/actions/workflows/ci.yml/badge.svg)](https://github.com/acid9burn/Woke-Bose/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/acid9burn/Woke-Bose)](https://github.com/acid9burn/Woke-Bose/releases/latest)
+[![CI](https://github.com/TinkeringDao/Woke-Bose/actions/workflows/ci.yml/badge.svg)](https://github.com/TinkeringDao/Woke-Bose/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/TinkeringDao/Woke-Bose)](https://github.com/TinkeringDao/Woke-Bose/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS%20(IOBluetooth)-black)](bose_ultra_tuner.m)
 [![Hardware: PID 0x4066 (QCC5181)](https://img.shields.io/badge/Hardware-0x4066%20Lonestarr%20(1.6.7)-teal)](docs/ARCHITECTURE.md)
