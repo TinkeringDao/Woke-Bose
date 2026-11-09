@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build-and-verify:
+    name: Build macOS IOBluetooth Tuner & Verify Scripts
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Compile bose-ultra-tuner (Zero Warnings)
+        run: |
+          make clean
+          clang -fobjc-arc -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 \
+            -framework Foundation -framework IOBluetooth -framework CoreAudio \
+            bose_ultra_tuner.m -o bose-ultra-tuner
+          ./bose-ultra-tuner --help
+
+      - name: Validate Wizard & APPUHDR5 Parser Syntax
+        run: |
+          bash -n bose-ultra-wizard.sh
+          python3 -m py_compile parse_appuhdr5.py

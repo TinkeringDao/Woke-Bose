@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 TinkeringDao
+# Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra Headphones
+# Developed under Directive 2009/24/EC (Articles 1(2), 5(3), 6, 8), Article 3(1)(b) of Directive (EU) 2016/943,
+# Article 14(1)(c) of Regulation (EU) 2017/1001 (EUTMR), Regulation (EU) 2024/2847 Recitals 15 & 18,
+# 15 U.S.C. §§ 1115(b)(4), 1125, 17 U.S.C. §§ 102(b), 107, 1201(f), and 18 U.S.C. §§ 1839(6)(B), 1030.
+# Not affiliated with or endorsed by Bose Corporation. See LEGAL.md.
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TUNER="${DIR}/bose-ultra-tuner"
+
+if [[ ! -x "${TUNER}" ]]; then
+  echo "[*] Compiling macOS IOBluetooth user-preference interoperability client..."
+  make -C "${DIR}"
+fi
+
+echo "========================================================================"
+echo "  Woke Edition — Unofficial NVRAM & DSP Wizard for Bose QC Ultra (0x4066)"
+echo "========================================================================"
+echo "  1) Apply 'Woke' Edition Profile (Recommended)"
+echo "       - CoreAudio Guard    : Switches macOS Default Input to Built-in Mic (locks 2-ch Stereo A2DP)"
+echo "       - Hardware EQ [1.7]  : Bass -3 dB | Mid +1 dB | Treble +2 dB"
+echo "       - Self Voice  [1.11] : OFF (-78.8 dBFS noise floor / 54.3 dB SNR)"
+echo "       - Multipoint  [1.10] : ENABLED (Mac + Phone simultaneous connectivity)"
+echo "       - DSP Mode #4 [31.6] : 'Woke Studio' (CNC=10/10 Full ANC, Spatial=Off, WindBlock=Off)"
+echo "  2) Read Live Headphone Telemetry & Biquad Status (status)"
+echo "  3) Set Custom 3-Band Hardware EQ (-10 to +10 dB)"
+echo "  4) Configure Call Mic Sidetone (off | low | med | high)"
+echo "  5) Apply macOS High-Bitpool Bluetooth A2DP Tuning (Bitpool 58..80)"
+echo "  6) Scan Supported BMAP Function Blocks & Registers (scan)"
+echo "  7) Restore Factory Baseline NVRAM Settings (baseline)"
+echo "  8) Eliminate Playback Noise / HFP Call Hijack (fix-noise)"
+echo "  q) Quit"
+echo "========================================================================"
+read -rp "Select an option [1-8, q]: " choice
+
+case "${choice}" in
+  1)
+    "${TUNER}" woke
+    ;;
+  8)
+    "${TUNER}" fix-noise
+    ;;
+  2)
+    "${TUNER}" status
+    ;;
+  3)
+    read -rp "Enter Bass, Mid, Treble in integer dB (e.g. -3 1 2): " b m t
+    "${TUNER}" eq "${b:--3}" "${m:-1}" "${t:-2}"
+    ;;
+  4)
+    read -rp "Enter Call Mic Sidetone mode [off/low/med/high]: " cmode
+    "${TUNER}" sidetone "${cmode:-off}"
+    ;;
+  5)
+    defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Max (editable)" 80
+    defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" 58
+    defaults write com.apple.BluetoothAudioAgent "Apple Initial Bitpool (editable)" 64
+    defaults write com.apple.BluetoothAudioAgent "Apple Initial Bitpool Min (editable)" 58
+    defaults write com.apple.BluetoothAudioAgent "Negotiated Bitpool" 64
+    defaults write com.apple.BluetoothAudioAgent "Negotiated Bitpool Max" 80
+    defaults write com.apple.BluetoothAudioAgent "Negotiated Bitpool Min" 58
+    echo "[+] macOS BluetoothAudioAgent configured for maximum A2DP bitpool (58..80)."
+    defaults read com.apple.BluetoothAudioAgent
+    ;;
+  6)
+    "${TUNER}" scan
+    ;;
+  7)
+    "${TUNER}" baseline
+    ;;
+  *)
+    echo "Exiting."
+    ;;
+esac
