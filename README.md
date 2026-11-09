@@ -48,9 +48,10 @@ make baseline
 | **Kalimba DSP Biquad Stage 3 (`[5.17]`)** | `05 11` (`GET 0x01`, Offset `50..65`) | `00000000 00000000 00000000 7fffffff`<br>(`b0 = +1.000000` Q1.31 unity bypass) | `f315b575 fbc792d2 00000000 7f46dc5c`<br>(`b2 = -0.100900`, `b1 = -0.032972`, `b0 = +0.994350` Q1.31 peaking) | Active hardware midrange/treble compensation filter on Kalimba DSP |
 | **Kalimba DSP Biquad Stages 1, 2, 4, 5** | `05 11` (`GET 0x01`) | `00000000 00000000 00000000 7fffffff` | `00000000 00000000 00000000 7fffffff` | Zero phase distortion across unadjusted biquad stages |
 | **Self Voice / Sidetone (`[1.11]`)** | `01 0B` (`SETGET 0x02`) | **MEDIUM** (`01 02 01 0f` / `01 02 0f`) | **OFF** (`01 00 01 0f` -> `01 00 0f`, `Persist=1`) | Shuts off the real-time exterior ambient mic loopback into the earcups and HFP uplink mixer during calls |
-| **Multipoint Connection (`[1.10]`)** | `01 0A` (`SETGET 0x02`) | **ENABLED** (`0x05` write -> `0x07` status, `bit0 = 1`) | **DISABLED** (`0x00` write -> `0x06` status, `bit0 = 0`) | Prevents dual-ACL air-time contention that forces HFP fallback to `8,000 Hz` narrowband `CVSD`; locks `16,000 Hz` wideband `mSBC` |
-| **Active Audio Mode (`[31.3]`)** | `1F 03` (`START 0x05`) | **Slot `0` ("Quiet")**<br>Payload: `00 00` | **Slot `4` ("Woke Studio")**<br>Payload: `04 00` | Switches active NVRAM mode slot to dedicated zero-ANC-feedback reference profile |
-| **Custom Mode Slot 4 Config (`[31.6]`)** | `1F 06` (`SETGET 0x02`) | Unconfigured / Inactive (`CNC=10/10`, `WindBlock=ON`) | **CNC `0/10` (`0x00`), AutoCNC `0`, Spatial `Off` (`0x00`), WindBlock `OFF` (`0x00`)** | Frees all 6 per-cup MEMS mics from counter-phase ANC modulation and disables the `400 Hz` WindBlock high-pass mute gate |
+| **Multipoint Connection (`[1.10]`)** | `01 0A` (`SETGET 0x02`) | **ENABLED** (`0x05` write -> `0x07` status, `bit0 = 1`) | **ENABLED** (`0x05` write -> `0x07` status, `bit0 = 1`) for Mac + Phone (or optional single-point `0x00` -> `0x06` via `multipoint off`) | Keeps simultaneous **Mac + Phone** dual-ACL connectivity active while `CoreAudio` Input Guard prevents macOS HFP `SCO` hijacks |
+| **Active Audio Mode (`[31.3]`)** | `1F 03` (`START 0x05`) | **Slot `0` ("Quiet")**<br>Payload: `00 00` | **Slot `4` ("Woke Studio")**<br>Payload: `04 00` | Switches active NVRAM mode slot to dedicated phase-coherent Full ANC reference profile |
+| **Custom Mode Slot 4 Config (`[31.6]`)** | `1F 06` (`SETGET 0x02`) | Unconfigured / Inactive (`CNC=10/10`, `WindBlock=ON`) | **CNC `10/10` (`0x0A` Full ANC), AutoCNC `0`, Spatial `Off` (`0x00`), WindBlock `OFF` (`0x00`)** | Locks maximum 10/10 Quiet ANC silence (`0x0A` vs. `0x00` Aware transparency), disables ActiveSense ANC pumping (`AutoCNC=0`), and disables `400 Hz` WindBlock high-pass gate |
+| **macOS CoreAudio HFP SCO Input Guard** | `kAudioHardwarePropertyDefaultInputDevice` | `Bose QC Ultra Headphones` selected as Default Input (triggers `16,000 Hz` 1-ch Mono `SCO` call hijack on any mic access) | **Built-in `MacBook Pro Microphone` (`kAudioDeviceTransportTypeBuiltIn`)** | Prevents background apps from dropping headphones into 1-ch Mono `16 kHz` `SCO` telephony mode (and turning on exterior call mics) during music playback; locks `2-ch Stereo A2DP` |
 | **Stationary Background Noise Floor** | Voice Memo Telemetry (`48 kHz` PCM) | **`-58.7 dBFS`** (10th percentile RMS) | **`-78.8 dBFS`** (10th percentile RMS) | **`-20.1 dB` (10x amplitude reduction)** in continuous room/HVAC background hiss |
 | **Active Speech RMS Level** | Voice Memo Telemetry (`48 kHz` PCM) | **`-23.3 dBFS`** (90th percentile RMS) | **`-24.5 dBFS`** (90th percentile RMS) | Consistent vocal pickup (`1.2 dB` delta) without mid-word clipping |
 | **Stationary Signal-to-Noise Ratio (SNR)** | Voice Memo Telemetry (`Speech - Noise`) | **`35.4 dB`** | **`54.3 dB`** | **`+18.9 dB` net voice-to-noise isolation gain** |
@@ -68,14 +69,12 @@ Each audio mode slot on the Bose QC Ultra (`0x4066`, firmware `1.6.7`) is stored
 | Byte Offset (Write / Status) | Field Name | Factory Slot 0 (`"Quiet"`) | Factory Slot 1 (`"Aware"`) | "Woke" Slot 4 (`"Woke Studio"`) | Technical Function |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `0` | `slot_id` | `0x00` | `0x01` | `0x04` | Mode slot index (`0..9`) in Partition 6 NVRAM |
-| `1` | `active_flag` | `0x01` | `0x00` | `0x01` | `1` = currently active mode, `0` = stored preset |
-| `2` | `cnc_level` | `0x0A` (`10/10`) | `0x00` (`0/10`) | `0x00` (`0/10`) | Analog Devices `71215 BCBZ` Custom Noise Cancellation depth (`0..10`) |
-| `3` | `auto_cnc` | `0x00` | `0x00` (`0x01` when ActiveSense ON) | `0x00` | Dynamic ActiveSense ANC modulation (`0` = Off, `1` = On) |
-| `4` | `spatial_mode` | `0x00` | `0x00` | `0x00` | Bose Immersive Audio (`0` = Off, `1` = Still, `2` = Motion via `STM32U585OI` IMU) |
-| `5..36` | `mode_name[32]` | `"Quiet\0..."` (UTF-8, 32B) | `"Aware\0..."` (UTF-8, 32B) | `"Woke Studio\0..."` (UTF-8, 32B) | Null-padded 32-byte UTF-8 mode name |
-| `37` | `preset_icon` | `0x01` | `0x02` | `0x05` | Preset icon / category ID |
-| `38` | `wind_block` | `0x00` | `0x00` | `0x00` | Wind Block `400 Hz` high-pass mute gate (`0x00` = Off, `0x01` = On) |
-| `39..46` *(Status only)* | `cap_bitmask[8]` | `07 07 01 07 01 00 00 00` | `03 07 00 07 01 01 00 00` | `02 07 01 07 00 00 00 00` | Read-only capability descriptor returned by `Apps P1` |
+| `1..2` | `prompt_id` | `0x0001` | `0x0002` | `0x000C` | Voice prompt / category ID (`0x000C` = `"Music"`) |
+| `3..34` | `mode_name[32]` | `"Quiet\0..."` (UTF-8, 32B) | `"Aware\0..."` (UTF-8, 32B) | `"Woke Studio\0..."` (UTF-8, 32B) | Null-padded 32-byte UTF-8 mode name |
+| `35` *(Status `42`)* | `cnc_level` | `0x0A` (`10/10` Full ANC) | `0x00` (`0/10` Full Aware) | **`0x0A` (`10/10` Full ANC)** | Analog Devices `71215 BCBZ` Noise Cancellation depth (`10/10` = Full Quiet ANC; `0/10` = Full Aware Transparency) |
+| `36` *(Status `43`)* | `auto_cnc` | `0x00` | `0x00` (`0x01` when ActiveSense ON) | `0x00` | Dynamic ActiveSense ANC modulation (`0` = Off, `1` = On) |
+| `37` *(Status `44`)* | `spatial_mode` | `0x00` | `0x00` | `0x00` | Bose Immersive Audio (`0` = Off, `1` = Still, `2` = Motion via `STM32U585OI` IMU) |
+| `38` *(Status `46`)* | `wind_block` | `0x00` | `0x00` | `0x00` | Wind Block `400 Hz` high-pass mute gate (`0x00` = Off, `0x01` = On) |
 
 ---
 
@@ -114,7 +113,8 @@ The tool automatically discovers your paired Bose QuietComfort Ultra Headphones 
 
 | Command | Description |
 | :--- | :--- |
-| `./bose-ultra-tuner woke` | **Apply full "Woke" Edition upgrade** (Hardware EQ `-3/+1/+2`, Sidetone `OFF`, Multipoint `OFF` for `16 kHz` wideband `mSBC`, `"Woke Studio"` Custom Mode Slot 4 with `CNC=0, WindBlock=OFF`, and read back the 6-stage Q1.31 Kalimba biquad table) |
+| `./bose-ultra-tuner woke` | **Apply full "Woke" Edition upgrade** (CoreAudio HFP `SCO` Input Guard, Hardware EQ `-3/+1/+2`, Sidetone `OFF`, Multipoint `ON` for Mac + Phone, `"Woke Studio"` Custom Mode Slot 4 with `CNC=10/10 Full ANC, AutoCNC=0, Spatial=Off, WindBlock=OFF`) |
+| `./bose-ultra-tuner fix-noise` | **Eliminate playback hiss/noise** (Switches macOS Default Input to Built-in Mic via `CoreAudio` to release `16 kHz` Mono `HFP SCO` call hijacks, disables Sidetone, and programs `CNC=10/10 Full ANC` in Slot 4) |
 | `./bose-ultra-tuner baseline` | **Restore Factory Baseline** (Hardware EQ `0/0/0`, Sidetone `MEDIUM`, Multipoint `ON`, Active Mode Slot `0` `"Quiet"`) |
 | `./bose-ultra-tuner status` | Query live firmware version, battery level, active mode, 3-band EQ, sidetone, multipoint, and all 98 bytes of `[5.17]` Q1.31 biquad coefficients |
 | `./bose-ultra-tuner pimp-audio` | Program only the DAC Reference Hardware EQ (`-3 / +1 / +2 dB`) and verify `[5.17]` biquad registers |

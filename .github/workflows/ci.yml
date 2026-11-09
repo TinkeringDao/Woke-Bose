@@ -27,7 +27,7 @@ jobs:
         run: |
           make clean
           clang -fobjc-arc -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 \
-            -framework Foundation -framework IOBluetooth \
+            -framework Foundation -framework IOBluetooth -framework CoreAudio \
             bose_ultra_tuner.m -o bose-ultra-tuner
           ./bose-ultra-tuner --help
 

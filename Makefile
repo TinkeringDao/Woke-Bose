@@ -5,11 +5,11 @@
 
 CC = clang
 CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -O2
-FRAMEWORKS = -framework Foundation -framework IOBluetooth
+FRAMEWORKS = -framework Foundation -framework IOBluetooth -framework CoreAudio
 TARGET = bose-ultra-tuner
 SRC = bose_ultra_tuner.m
 
-.PHONY: all woke baseline status scan wizard clean
+.PHONY: all woke fix-noise baseline status scan wizard clean
 
 all: $(TARGET)
 
@@ -18,6 +18,9 @@ $(TARGET): $(SRC)
 
 woke: $(TARGET)
 	./$(TARGET) woke
+
+fix-noise: $(TARGET)
+	./$(TARGET) fix-noise
 
 baseline: $(TARGET)
 	./$(TARGET) baseline

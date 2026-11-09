@@ -19,23 +19,28 @@ echo "========================================================================"
 echo "  Woke Edition — Unofficial NVRAM & DSP Wizard for Bose QC Ultra (0x4066)"
 echo "========================================================================"
 echo "  1) Apply 'Woke' Edition Profile (Recommended)"
+echo "       - CoreAudio Guard    : Switches macOS Default Input to Built-in Mic (locks 2-ch Stereo A2DP)"
 echo "       - Hardware EQ [1.7]  : Bass -3 dB | Mid +1 dB | Treble +2 dB"
 echo "       - Self Voice  [1.11] : OFF (-78.8 dBFS noise floor / 54.3 dB SNR)"
-echo "       - Multipoint  [1.10] : DISABLED (locks 16kHz Wideband mSBC)"
-echo "       - DSP Mode #4 [31.6] : 'Woke Studio' (CNC=0, Spatial=Off, WindBlock=Off)"
+echo "       - Multipoint  [1.10] : ENABLED (Mac + Phone simultaneous connectivity)"
+echo "       - DSP Mode #4 [31.6] : 'Woke Studio' (CNC=10/10 Full ANC, Spatial=Off, WindBlock=Off)"
 echo "  2) Read Live Headphone Telemetry & Biquad Status (status)"
 echo "  3) Set Custom 3-Band Hardware EQ (-10 to +10 dB)"
 echo "  4) Configure Call Mic Sidetone (off | low | med | high)"
 echo "  5) Apply macOS High-Bitpool Bluetooth A2DP Tuning (Bitpool 58..80)"
 echo "  6) Scan Supported BMAP Function Blocks & Registers (scan)"
 echo "  7) Restore Factory Baseline NVRAM Settings (baseline)"
+echo "  8) Eliminate Playback Noise / HFP Call Hijack (fix-noise)"
 echo "  q) Quit"
 echo "========================================================================"
-read -rp "Select an option [1-7, q]: " choice
+read -rp "Select an option [1-8, q]: " choice
 
 case "${choice}" in
   1)
     "${TUNER}" woke
+    ;;
+  8)
+    "${TUNER}" fix-noise
     ;;
   2)
     "${TUNER}" status

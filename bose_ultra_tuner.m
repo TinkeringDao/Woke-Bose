@@ -12,12 +12,17 @@
 
 #import <Foundation/Foundation.h>
 #import <IOBluetooth/IOBluetooth.h>
+#import <CoreAudio/CoreAudio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-static const BluetoothRFCOMMChannelID kBoseBMAPChannel = 2;
+static const BluetoothRFCOMMChannelID kBoseBMAPCandidateChannels[] = {1, 2, 14, 3};
+static const uint8_t kBoseBMAPUUIDBytes[16] = {
+    0x00, 0x00, 0x00, 0x00, 0xde, 0xca, 0xfa, 0xde,
+    0xde, 0xca, 0xde, 0xaf, 0xde, 0xca, 0xca, 0xff
+};
 
 @interface BMAPDelegate : NSObject <IOBluetoothRFCOMMChannelDelegate>
 @property (nonatomic, strong) NSMutableData *rxBuffer;
@@ -62,6 +67,160 @@ static void pumpRunLoop(NSTimeInterval seconds) {
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.02]];
     }
+}
+
+static NSString *audioDeviceName(AudioDeviceID devID) {
+    if (devID == kAudioObjectUnknown) return @"Unknown";
+    AudioObjectPropertyAddress nameAddr = {
+        kAudioObjectPropertyName,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMain
+    };
+    CFStringRef cfName = NULL;
+    UInt32 size = sizeof(cfName);
+    if (AudioObjectGetPropertyData(devID, &nameAddr, 0, NULL, &size, &cfName) == noErr && cfName) {
+        return (__bridge_transfer NSString *)cfName;
+    }
+    return @"Unknown";
+}
+
+static BOOL audioDeviceHasInputStreams(AudioDeviceID devID) {
+    AudioObjectPropertyAddress streamAddr = {
+        kAudioDevicePropertyStreams,
+        kAudioObjectPropertyScopeInput,
+        kAudioObjectPropertyElementMain
+    };
+    UInt32 dataSize = 0;
+    if (AudioObjectGetPropertyDataSize(devID, &streamAddr, 0, NULL, &dataSize) != noErr) {
+        return NO;
+    }
+    return (dataSize / sizeof(AudioStreamID)) > 0;
+}
+
+static void releaseBluetoothSCOIfNeeded(BOOL verbose) {
+    AudioObjectPropertyAddress defInAddr = {
+        kAudioHardwarePropertyDefaultInputDevice,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMain
+    };
+    AudioDeviceID defaultIn = kAudioObjectUnknown;
+    UInt32 propSize = sizeof(defaultIn);
+    if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &defInAddr, 0, NULL, &propSize, &defaultIn) != noErr) {
+        return;
+    }
+
+    NSString *curInName = audioDeviceName(defaultIn);
+    NSString *lowerIn = curInName.lowercaseString ?: @"";
+    BOOL isBoseInput = ([lowerIn containsString:@"qc ultra"] ||
+                        [lowerIn containsString:@"quietcomfort ultra"] ||
+                        [lowerIn containsString:@"bose"]);
+
+    if (!isBoseInput) {
+        if (verbose) {
+            printf("[*] CoreAudio Input Guard: Default Input Device is '%s' (2-ch Stereo A2DP protected; HFP SCO call hijack prevented).\n",
+                   curInName.UTF8String);
+        }
+        return;
+    }
+
+    AudioObjectPropertyAddress devListAddr = {
+        kAudioHardwarePropertyDevices,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMain
+    };
+    UInt32 listSize = 0;
+    if (AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &devListAddr, 0, NULL, &listSize) != noErr || listSize == 0) {
+        return;
+    }
+
+    UInt32 count = listSize / sizeof(AudioDeviceID);
+    AudioDeviceID *devices = (AudioDeviceID *)calloc(count, sizeof(AudioDeviceID));
+    if (!devices) return;
+
+    AudioDeviceID builtInMic = kAudioObjectUnknown;
+    if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &devListAddr, 0, NULL, &listSize, devices) == noErr) {
+        for (UInt32 i = 0; i < count; i++) {
+            AudioDeviceID cand = devices[i];
+            if (cand == defaultIn || !audioDeviceHasInputStreams(cand)) continue;
+            AudioObjectPropertyAddress transAddr = {
+                kAudioDevicePropertyTransportType,
+                kAudioObjectPropertyScopeGlobal,
+                kAudioObjectPropertyElementMain
+            };
+            UInt32 transport = 0;
+            UInt32 tSize = sizeof(transport);
+            if (AudioObjectGetPropertyData(cand, &transAddr, 0, NULL, &tSize, &transport) == noErr &&
+                transport == kAudioDeviceTransportTypeBuiltIn) {
+                builtInMic = cand;
+                break;
+            }
+        }
+    }
+    free(devices);
+
+    if (builtInMic != kAudioObjectUnknown) {
+        NSString *newInName = audioDeviceName(builtInMic);
+        OSStatus setErr = AudioObjectSetPropertyData(kAudioObjectSystemObject,
+                                                     &defInAddr,
+                                                     0,
+                                                     NULL,
+                                                     sizeof(builtInMic),
+                                                     &builtInMic);
+        if (setErr == noErr) {
+            printf("[+] CoreAudio Input Guard: Switched macOS Default Input Device from '%s' to '%s' (released 16 kHz Mono HFP SCO; locked 2-ch Stereo A2DP).\n",
+                   curInName.UTF8String, newInName.UTF8String);
+            pumpRunLoop(0.5);
+        }
+    }
+}
+
+static IOBluetoothRFCOMMChannel *openBMAPRFCOMMChannel(IOBluetoothDevice *device,
+                                                       BMAPDelegate *delegate,
+                                                       BluetoothRFCOMMChannelID *outChannelID) {
+    BluetoothRFCOMMChannelID candidates[8];
+    size_t candCount = 0;
+
+    for (size_t i = 0; i < sizeof(kBoseBMAPCandidateChannels) / sizeof(kBoseBMAPCandidateChannels[0]); i++) {
+        candidates[candCount++] = kBoseBMAPCandidateChannels[i];
+    }
+
+    IOBluetoothSDPUUID *bmapUUID = [IOBluetoothSDPUUID uuidWithBytes:kBoseBMAPUUIDBytes
+                                                              length:sizeof(kBoseBMAPUUIDBytes)];
+    IOBluetoothSDPServiceRecord *rec = [device getServiceRecordForUUID:bmapUUID];
+    BluetoothRFCOMMChannelID sdpCh = 0;
+    if (rec && [rec getRFCOMMChannelID:&sdpCh] == kIOReturnSuccess && sdpCh > 0) {
+        BOOL exists = NO;
+        for (size_t i = 0; i < candCount; i++) {
+            if (candidates[i] == sdpCh) { exists = YES; break; }
+        }
+        if (!exists) candidates[candCount++] = sdpCh;
+    }
+
+    for (int attempt = 0; attempt < 2; attempt++) {
+        for (size_t i = 0; i < candCount; i++) {
+            BluetoothRFCOMMChannelID chID = candidates[i];
+            IOBluetoothRFCOMMChannel *ch = nil;
+            IOReturn ret = [device openRFCOMMChannelSync:&ch
+                                           withChannelID:chID
+                                                delegate:delegate];
+            if (ret == kIOReturnSuccess && ch != nil) {
+                if (outChannelID) *outChannelID = chID;
+                return ch;
+            }
+        }
+        if (attempt == 0 && ![device isConnected]) {
+            printf("[*] Opening Bluetooth baseband connection...\n");
+            IOReturn connRet = [device openConnection];
+            if (connRet != kIOReturnSuccess) {
+                fprintf(stderr, "[!] Failed to open Bluetooth connection (0x%08x). Ensure headphones are powered ON and unplugged from USB DFU.\n", connRet);
+                return nil;
+            }
+            pumpRunLoop(1.0);
+        } else {
+            break;
+        }
+    }
+    return nil;
 }
 
 static IOBluetoothDevice *discoverBoseQCUltra(NSString *explicitMAC) {
@@ -188,10 +347,12 @@ static void printUsage(const char *prog) {
     printf("Usage: %s [--mac XX-XX-XX-XX-XX-XX] <command> [args...]\n\n", prog);
     printf("Commands:\n");
     printf("  woke                           Apply the 'Woke' Reference user-preference NVRAM & DSP configuration:\n");
-    printf("                                   - Hardware EQ [1.7]   : Bass -3 dB | Mid +1 dB | Treble +2 dB (B&K 5128 / Harman fix)\n");
-    printf("                                   - Self Voice  [1.11]  : OFF (0x00, Persist=1) (-20.1 dB noise floor, 54.3 dB SNR)\n");
-    printf("                                   - Multipoint  [1.10]  : DISABLED (0x06) (locks 16kHz mSBC / 32kHz aptX Voice, zero eSCO drops)\n");
-    printf("                                   - DSP Mode #4 [31.6]  : 'Woke Studio' (CNC=0, AutoCNC=0, Spatial=Off, WindBlock=OFF)\n");
+    printf("                                   - CoreAudio Input Guard: Switches macOS Default Input to Built-in Mic (locks 2-ch Stereo A2DP)\n");
+    printf("                                   - Hardware EQ [1.7]    : Bass -3 dB | Mid +1 dB | Treble +2 dB (B&K 5128 / Harman fix)\n");
+    printf("                                   - Self Voice  [1.11]   : OFF (0x00, Persist=1) (-20.1 dB noise floor, 54.3 dB SNR)\n");
+    printf("                                   - Multipoint  [1.10]   : ENABLED (0x05) (seamless Mac + Phone dual connection)\n");
+    printf("                                   - DSP Mode #4 [31.6]   : 'Woke Studio' (CNC=10/10 Full ANC, AutoCNC=0, Spatial=Off, WindBlock=OFF)\n");
+    printf("  fix-noise                      Eliminate playback hiss/noise (releases macOS 16kHz HFP SCO call hijack + sets CNC=10/10 Full ANC)\n");
     printf("  baseline                       Restore factory baseline NVRAM settings (EQ 0/0/0, Multipoint ON, Slot 0 Quiet)\n");
     printf("  status                         Read live firmware, battery, latency, EQ, Self Voice, Multipoint & DSP state\n");
     printf("  pimp-call [off|low|med|high|strict]\n");
@@ -229,40 +390,35 @@ int main(int argc, const char * argv[]) {
             printUsage(argv[0]);
             return 0;
         }
+
+        if ([cmd isEqualToString:@"woke"] ||
+            [cmd isEqualToString:@"fix-noise"] ||
+            [cmd isEqualToString:@"pimp-audio"] ||
+            [cmd isEqualToString:@"status"]) {
+            releaseBluetoothSCOIfNeeded(YES);
+        }
+
         IOBluetoothDevice *device = discoverBoseQCUltra(explicitMAC);
         if (!device) {
             fprintf(stderr, "[!] Could not find paired Bose QC Ultra Headphones. Pair them in macOS Bluetooth settings or pass --mac XX-XX-XX-XX-XX-XX.\n");
             return 2;
         }
 
-        printf("[*] Connecting to %s (%s) via IOBluetooth RFCOMM Channel %u...\n",
+        printf("[*] Connecting to %s (%s) via IOBluetooth BMAP RFCOMM...\n",
                device.name.UTF8String ?: "Bose QC Ultra",
-               device.addressString.UTF8String,
-               kBoseBMAPChannel);
-
-        if (![device isConnected]) {
-            printf("[*] Opening Bluetooth baseband connection...\n");
-            IOReturn connRet = [device openConnection];
-            if (connRet != kIOReturnSuccess) {
-                fprintf(stderr, "[!] Failed to open Bluetooth connection (0x%08x). Ensure headphones are powered ON and unplugged from USB DFU.\n", connRet);
-                return 3;
-            }
-            pumpRunLoop(1.0);
-        }
+               device.addressString.UTF8String);
 
         BMAPDelegate *delegate = [[BMAPDelegate alloc] init];
-        IOBluetoothRFCOMMChannel *channel = nil;
-        IOReturn rfRet = [device openRFCOMMChannelSync:&channel
-                                         withChannelID:kBoseBMAPChannel
-                                              delegate:delegate];
-        if (rfRet != kIOReturnSuccess || !channel) {
-            fprintf(stderr, "[!] Failed to open BMAP RFCOMM Channel %u (0x%08x).\n", kBoseBMAPChannel, rfRet);
+        BluetoothRFCOMMChannelID activeChannel = 0;
+        IOBluetoothRFCOMMChannel *channel = openBMAPRFCOMMChannel(device, delegate, &activeChannel);
+        if (!channel) {
+            fprintf(stderr, "[!] Failed to open BMAP RFCOMM Channel (tried Channels 1, 2, 14, 3 and SDP UUID 00000000-deca-fade-deca-deafdecacaff).\n");
             return 4;
         }
 
         pumpRunLoop(0.4);
         [delegate.rxBuffer setLength:0];
-        printf("[+] BMAP RFCOMM Channel %u connected.\n\n", kBoseBMAPChannel);
+        printf("[+] BMAP RFCOMM Channel %u connected.\n\n", activeChannel);
 
         if ([cmd isEqualToString:@"status"]) {
             const uint8_t qFw[]   = {0x00, 0x05, 0x01, 0x00};
@@ -301,11 +457,11 @@ int main(int argc, const char * argv[]) {
             uint8_t txSide[] = {0x01, 0x0B, 0x02, 0x02, 0x01, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txSide, sizeof(txSide), 0.3));
 
-            // 3. Multipoint [1.10]: DISABLED (0x00 -> 0x06)
-            uint8_t txMp[] = {0x01, 0x0A, 0x02, 0x01, 0x00};
+            // 3. Multipoint [1.10]: ENABLED (0x05 -> 0x07) for simultaneous Mac + Phone use
+            uint8_t txMp[] = {0x01, 0x0A, 0x02, 0x01, 0x05};
             parseBMAPFrames(sendBMAP(channel, delegate, txMp, sizeof(txMp), 0.3));
 
-            // 4. Custom Mode Slot 4 ("Woke Studio"): CNC=0, AutoCNC=0, Spatial=0, WindBlock=0
+            // 4. Custom Mode Slot 4 ("Woke Studio"): CNC=10/10 (0x0A Full ANC), AutoCNC=0, Spatial=0, WindBlock=0
             uint8_t txSlot[4 + 39];
             memset(txSlot, 0, sizeof(txSlot));
             txSlot[0] = 0x1F; txSlot[1] = 0x06; txSlot[2] = 0x02; txSlot[3] = 39;
@@ -313,12 +469,38 @@ int main(int argc, const char * argv[]) {
             txSlot[5] = 0x00; txSlot[6] = 0x0C; // Prompt 0x000C ("Music")
             const char *name = "Woke Studio";
             memcpy(&txSlot[7], name, strlen(name));
+            txSlot[4 + 35] = 0x0A; // CNC = 10/10 (Full Active Noise Cancellation; 0x00 is Full Aware/Transparency)
+            txSlot[4 + 36] = 0x00; // AutoCNC = 0 (ActiveSense off)
+            txSlot[4 + 37] = 0x00; // Spatial = 0 (Immersive Audio off)
+            txSlot[4 + 38] = 0x00; // WindBlock = 0
             parseBMAPFrames(sendBMAP(channel, delegate, txSlot, sizeof(txSlot), 0.4));
 
             // 5. Activate Slot 4 silently via [31.3] START
             uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
-            printf("[+] 'Woke' user-preference profile saved to headphone NVRAM (Partition 6).\n");
+            printf("[+] 'Woke' user-preference profile (CNC=10/10 Full ANC + 2-ch Stereo A2DP) saved to headphone NVRAM (Partition 6).\n");
+
+        } else if ([cmd isEqualToString:@"fix-noise"]) {
+            printf("[*] Eliminating playback noise (releasing macOS HFP SCO call hijack + setting CNC=10/10 Full ANC)...\n");
+            uint8_t txSide[] = {0x01, 0x0B, 0x02, 0x02, 0x01, 0x00};
+            parseBMAPFrames(sendBMAP(channel, delegate, txSide, sizeof(txSide), 0.3));
+
+            uint8_t txSlot[4 + 39];
+            memset(txSlot, 0, sizeof(txSlot));
+            txSlot[0] = 0x1F; txSlot[1] = 0x06; txSlot[2] = 0x02; txSlot[3] = 39;
+            txSlot[4] = 0x04;
+            txSlot[5] = 0x00; txSlot[6] = 0x0C;
+            const char *name = "Woke Studio";
+            memcpy(&txSlot[7], name, strlen(name));
+            txSlot[4 + 35] = 0x0A; // CNC = 10/10 (Full Active Noise Cancellation)
+            txSlot[4 + 36] = 0x00; // AutoCNC = 0
+            txSlot[4 + 37] = 0x00; // Spatial = 0
+            txSlot[4 + 38] = 0x00; // WindBlock = 0
+            parseBMAPFrames(sendBMAP(channel, delegate, txSlot, sizeof(txSlot), 0.4));
+
+            uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
+            parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
+            printf("[+] Playback noise eliminated: CNC=10/10 Full ANC active in Slot 4 ('Woke Studio') and macOS locked to 2-ch Stereo A2DP.\n");
 
         } else if ([cmd isEqualToString:@"baseline"]) {
             printf("[*] Restoring Factory Baseline NVRAM Configuration...\n");
@@ -362,7 +544,7 @@ int main(int argc, const char * argv[]) {
             txSlot[5] = 0x00; txSlot[6] = 0x0D;
             const char *name = "Call Studio";
             memcpy(&txSlot[7], name, strlen(name));
-            txSlot[4 + 35] = 0x00;
+            txSlot[4 + 35] = 0x0A; // CNC = 10/10 (Full ANC so exterior noise isn't amplified into earcups)
             txSlot[4 + 36] = 0x00;
             txSlot[4 + 37] = 0x00;
             txSlot[4 + 38] = windFlag;
@@ -371,7 +553,7 @@ int main(int argc, const char * argv[]) {
             uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
 
-            printf("[+] Call Mic & Kalimba DSP Optimization written to headphone NVRAM (Active Mode = Slot 4 'Call Studio').\n");
+            printf("[+] Call Mic & Kalimba DSP Optimization written to headphone NVRAM (Active Mode = Slot 4 'Call Studio', CNC=10/10).\n");
 
         } else if ([cmd isEqualToString:@"pimp-audio"]) {
             int8_t bass = -3, mid = 1, treble = 2;
