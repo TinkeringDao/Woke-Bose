@@ -23,6 +23,15 @@ bash -n bose-ultra-wizard.sh
 python3 -m py_compile parse_appuhdr5.py
 ```
 
+### Verification Checklist & Pre-Merge Gate Commands
+
+| Gate | Requirement | Local Pre-Merge Command |
+| :--- | :--- | :--- |
+| **Gate 1: OPSEC & Zero-PII** | Zero personal identifiers, local usernames, postal codes, or coordinates in repo tree | `grep -rnI -iE "<FORBIDDEN_PII_PATTERN>" . --exclude-dir=.git --exclude="*autonomous-pr-review.yml"` (see workflow) |
+| **Gate 2: Cryptographic Signatures** | Every commit signed with `ED25519` SSH key (`verified == true`) | `git log -1 --show-signature` |
+| **Gate 3: Legal & Autonomous Spec** | `LEGAL.md` (with German Statutory Addendum), `LICENSE`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CODEOWNERS`, `AGENTS.md`, `CLAUDE.md`, `docs/agents/autonomous-pipeline.md` present | `grep -q "Addendum: German Statutory References" LEGAL.md && test -s docs/agents/autonomous-pipeline.md` |
+| **Gate 4: Build & Syntax** | Zero-warning Objective-C compilation + Bash & Python syntax checks | `make && bash -n bose-ultra-wizard.sh && python3 -m py_compile parse_appuhdr5.py` |
+
 ## Agent skills
 
 ### Issue tracker
