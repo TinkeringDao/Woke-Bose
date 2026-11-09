@@ -115,6 +115,8 @@ The tool automatically discovers your paired Bose QuietComfort Ultra Headphones 
 | :--- | :--- |
 | `./bose-ultra-tuner woke` | **Apply full "Woke" Edition upgrade** (CoreAudio HFP `SCO` Input Guard, Hardware EQ `-3/+1/+2`, Sidetone `OFF`, Multipoint `ON` for Mac + Phone, `"Woke Studio"` Custom Mode Slot 4 with `CNC=10/10 Full ANC, AutoCNC=0, Spatial=Off, WindBlock=OFF`) |
 | `./bose-ultra-tuner fix-noise` | **Eliminate playback hiss/noise** (Switches macOS Default Input to Built-in Mic via `CoreAudio` to release `16 kHz` Mono `HFP SCO` call hijacks, disables Sidetone, and programs `CNC=10/10 Full ANC` in Slot 4) |
+| `./bose-ultra-tuner use-phone` | **Hand Multipoint audio focus to Phone** (Suspends the Mac's `AVDTP_START` A2DP stream by routing macOS output to `MacBook Pro Speakers` so Phone audio plays immediately on the headphones) |
+| `./bose-ultra-tuner use-mac` | **Hand Multipoint audio focus to Mac** (Routes macOS output back to `Bose QC Ultra Headphones` in 2-channel Stereo A2DP while keeping `MacBook Pro Microphone` as the input) |
 | `./bose-ultra-tuner baseline` | **Restore Factory Baseline** (Hardware EQ `0/0/0`, Sidetone `MEDIUM`, Multipoint `ON`, Active Mode Slot `0` `"Quiet"`) |
 | `./bose-ultra-tuner status` | Query live firmware version, battery level, active mode, 3-band EQ, sidetone, multipoint, and all 98 bytes of `[5.17]` Q1.31 biquad coefficients |
 | `./bose-ultra-tuner pimp-audio` | Program only the DAC Reference Hardware EQ (`-3 / +1 / +2 dB`) and verify `[5.17]` biquad registers |

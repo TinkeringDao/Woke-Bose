@@ -98,6 +98,96 @@ static BOOL audioDeviceHasInputStreams(AudioDeviceID devID) {
     return (dataSize / sizeof(AudioStreamID)) > 0;
 }
 
+static BOOL audioDeviceHasOutputStreams(AudioDeviceID devID) {
+    AudioObjectPropertyAddress streamAddr = {
+        kAudioDevicePropertyStreams,
+        kAudioObjectPropertyScopeOutput,
+        kAudioObjectPropertyElementMain
+    };
+    UInt32 dataSize = 0;
+    if (AudioObjectGetPropertyDataSize(devID, &streamAddr, 0, NULL, &dataSize) != noErr) {
+        return NO;
+    }
+    return (dataSize / sizeof(AudioStreamID)) > 0;
+}
+
+static int routeMacAudioFocus(BOOL toBoseHeadphones) {
+    AudioObjectPropertyAddress devListAddr = {
+        kAudioHardwarePropertyDevices,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMain
+    };
+    UInt32 listSize = 0;
+    if (AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &devListAddr, 0, NULL, &listSize) != noErr || listSize == 0) {
+        fprintf(stderr, "[!] CoreAudio: Could not enumerate macOS audio devices.\n");
+        return 1;
+    }
+
+    UInt32 count = listSize / sizeof(AudioDeviceID);
+    AudioDeviceID *devices = (AudioDeviceID *)calloc(count, sizeof(AudioDeviceID));
+    if (!devices) return 1;
+
+    AudioDeviceID targetOut = kAudioObjectUnknown;
+    if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &devListAddr, 0, NULL, &listSize, devices) == noErr) {
+        for (UInt32 i = 0; i < count; i++) {
+            AudioDeviceID cand = devices[i];
+            if (!audioDeviceHasOutputStreams(cand)) continue;
+            NSString *lower = audioDeviceName(cand).lowercaseString ?: @"";
+            BOOL isBose = ([lower containsString:@"qc ultra"] ||
+                           [lower containsString:@"quietcomfort ultra"] ||
+                           [lower containsString:@"bose"]);
+            if (toBoseHeadphones && isBose) {
+                targetOut = cand;
+                break;
+            }
+            if (!toBoseHeadphones && !isBose) {
+                AudioObjectPropertyAddress transAddr = {
+                    kAudioDevicePropertyTransportType,
+                    kAudioObjectPropertyScopeGlobal,
+                    kAudioObjectPropertyElementMain
+                };
+                UInt32 transport = 0;
+                UInt32 tSize = sizeof(transport);
+                if (AudioObjectGetPropertyData(cand, &transAddr, 0, NULL, &tSize, &transport) == noErr &&
+                    transport == kAudioDeviceTransportTypeBuiltIn) {
+                    targetOut = cand;
+                    break;
+                }
+            }
+        }
+    }
+    free(devices);
+
+    if (targetOut == kAudioObjectUnknown) {
+        fprintf(stderr, "[!] CoreAudio: Could not find %s output device.\n",
+                toBoseHeadphones ? "Bose QC Ultra" : "built-in Mac speaker");
+        return 2;
+    }
+
+    AudioObjectPropertyAddress defOutAddr = {
+        kAudioHardwarePropertyDefaultOutputDevice,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMain
+    };
+    AudioObjectPropertyAddress sysOutAddr = {
+        kAudioHardwarePropertyDefaultSystemOutputDevice,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMain
+    };
+    AudioObjectSetPropertyData(kAudioObjectSystemObject, &defOutAddr, 0, NULL, sizeof(targetOut), &targetOut);
+    AudioObjectSetPropertyData(kAudioObjectSystemObject, &sysOutAddr, 0, NULL, sizeof(targetOut), &targetOut);
+
+    NSString *outName = audioDeviceName(targetOut);
+    if (toBoseHeadphones) {
+        printf("[+] Multipoint Audio Focus -> MAC: Routed macOS output to '%s' (2-ch Stereo A2DP).\n",
+               outName.UTF8String);
+    } else {
+        printf("[+] Multipoint Audio Focus -> PHONE: Routed macOS output to '%s' (suspended Mac A2DP stream so Phone audio plays on headphones).\n",
+               outName.UTF8String);
+    }
+    return 0;
+}
+
 static void releaseBluetoothSCOIfNeeded(BOOL verbose) {
     AudioObjectPropertyAddress defInAddr = {
         kAudioHardwarePropertyDefaultInputDevice,
@@ -177,13 +267,13 @@ static void releaseBluetoothSCOIfNeeded(BOOL verbose) {
 
 static BOOL verifyBMAPHandshake(IOBluetoothRFCOMMChannel *channel, BMAPDelegate *delegate) {
     static const uint8_t kBMAPVersionGet[] = {0x00, 0x01, 0x01, 0x00};
-    pumpRunLoop(0.15);
+    pumpRunLoop(0.4);
     [delegate.rxBuffer setLength:0];
     IOReturn wRet = [channel writeSync:(void *)kBMAPVersionGet length:(UInt16)sizeof(kBMAPVersionGet)];
     if (wRet != kIOReturnSuccess) {
         return NO;
     }
-    pumpRunLoop(0.25);
+    pumpRunLoop(0.3);
     const uint8_t *rx = (const uint8_t *)delegate.rxBuffer.bytes;
     size_t rxLen = delegate.rxBuffer.length;
     for (size_t pos = 0; pos + 4 <= rxLen; ) {
@@ -396,7 +486,9 @@ static void printUsage(const char *prog) {
     printf("                                   - Self Voice  [1.11]   : OFF (0x00, Persist=1) (-20.1 dB noise floor, 54.3 dB SNR)\n");
     printf("                                   - Multipoint  [1.10]   : ENABLED (0x05) (seamless Mac + Phone dual connection)\n");
     printf("                                   - DSP Mode #4 [31.6]   : 'Woke Studio' (CNC=10/10 Full ANC, AutoCNC=0, Spatial=Off, WindBlock=OFF)\n");
-    printf("  fix-noise                      Eliminate playback hiss/noise (releases macOS 16kHz HFP SCO call hijack + sets CNC=10/10 Full ANC)\n");
+    printf("  fix-noise                      Eliminate playback hiss/noise (releases macOS 16kHz HFP SCO call hijack + sets ANC=10/10 Full Quiet)\n");
+    printf("  use-phone                      Hand Multipoint audio focus to Phone (suspends Mac A2DP stream by routing Mac output to Speakers)\n");
+    printf("  use-mac                        Hand Multipoint audio focus to Mac (routes Mac output to Bose QC Ultra in 2-ch Stereo A2DP)\n");
     printf("  baseline                       Restore factory baseline NVRAM settings (EQ 0/0/0, Multipoint ON, Slot 0 Quiet)\n");
     printf("  status                         Read live firmware, battery, latency, EQ, Self Voice, Multipoint & DSP state\n");
     printf("  pimp-call [off|low|med|high|strict]\n");
@@ -434,6 +526,14 @@ int main(int argc, const char * argv[]) {
             printUsage(argv[0]);
             return 0;
         }
+        if ([cmd isEqualToString:@"use-phone"]) {
+            releaseBluetoothSCOIfNeeded(NO);
+            return routeMacAudioFocus(NO);
+        }
+        if ([cmd isEqualToString:@"use-mac"]) {
+            releaseBluetoothSCOIfNeeded(YES);
+            return routeMacAudioFocus(YES);
+        }
 
         if ([cmd isEqualToString:@"woke"] ||
             [cmd isEqualToString:@"fix-noise"] ||
@@ -460,7 +560,6 @@ int main(int argc, const char * argv[]) {
             return 4;
         }
 
-        pumpRunLoop(0.4);
         [delegate.rxBuffer setLength:0];
         printf("[+] BMAP RFCOMM Channel %u connected.\n\n", activeChannel);
 
