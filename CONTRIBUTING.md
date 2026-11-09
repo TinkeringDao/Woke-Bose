@@ -8,7 +8,7 @@ Contributions adding support for additional Bose BMAP registers, firmware revisi
 2. **Zero-Warning Compilation**: All Objective-C changes in [`bose_ultra_tuner.m`](bose_ultra_tuner.m) must compile cleanly under `-Wall -Wextra -Werror`:
    ```bash
    clang -fobjc-arc -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 \
-     -framework Foundation -framework IOBluetooth \
+     -framework Foundation -framework IOBluetooth -framework CoreAudio \
      bose_ultra_tuner.m -o bose-ultra-tuner
    ```
 3. **Script Verification**:
