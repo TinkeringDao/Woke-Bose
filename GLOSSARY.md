@@ -1,0 +1,13 @@
+# Glossary
+
+Single source of truth for domain terms used across this repository.
+
+- **`Lonestarr` (`0x4066` / `16486`)**: Bose internal hardware codename for the Bose QuietComfort Ultra Headphones (1st Gen), built on the `OTG-QCC-384` (`QCC5181`) platform.
+- **`OTG-QCC-384` (`QCC5181`)**: Qualcomm S5 Gen 2 Sound Platform SoC inside `Lonestarr`, housing dual 80 MHz 32-bit application cores (`Apps P0` Bluetooth baseband + `Apps P1` Bose BMAP application) and dual 240 MHz 32-bit Kalimba audio DSPs (`1.4 MB` Data RAM, `384 KB` Program RAM).
+- **`71215 BCBZ`**: Dual Analog Devices custom low-latency ANC DSPs and 24-bit differential Class-D DACs that ingest 12 MEMS microphones (6 per earcup) and drive the 35mm transducers.
+- **`APPUHDR5`**: Qualcomm ADK Over-The-Air / DFU Type-Length-Value firmware container format (`APPUHDR5` header + `PARTDATA` encrypted partitions + `APPUPFTR` 2048-bit RSA-PSS signature footer). Documented strictly via clean-room structural TLV offsets and `<REDACTED_OEM_BYTES>` with zero decryption.
+- **`OTP_PROD` (`0x0001`)**: One-Time Programmable Production eFuse flag in `APPUHDR5` instructing the `QCC5181` hardware Security Subsystem to decrypt `PARTDATA` sections via on-chip AES-128-CTR keys and verify the 2048-bit RSA-PSS footer.
+- **`BMAP` (Bose Management Protocol)**: 4-byte binary framing protocol (`[FunctionBlock, FunctionId, Operator, DataLength, Payload...]`) transported over Bluetooth RFCOMM Channel 2 (`00000000-deca-fade-deca-deafdecacaff`), BLE GATT (`0xFEBE`), and USB HID (`UsagePage 0xFF00`).
+- **`SETGET` (`0x02`)**: Standard plaintext BMAP write-and-readback user-preference operator on `Settings [0x01]` and `AudioModes [0x1F]` that saves user settings directly to headphone NVRAM (`Partition 6` PS Keys) over Bluetooth SPP.
+- **`Baseline` Edition**: Factory default NVRAM state (`[1.7]` EQ `0 / 0 / 0 dB`, `[1.10]` Multipoint `Enabled 0x07`, `[1.11]` Sidetone `Medium 0x02`, `[31.3]` Mode `Slot 0` or `Immersion`). Exhibits `+3.77 dB` upper-bass bloat (`90–180 Hz`), `-2.22 dB` vocal recession (`1.63 kHz`), `-2.95 dB` presence suckout (`5.0 kHz`), `-58.7 dBFS` call noise floor (`35.4 dB` SNR), and eSCO TDM call packet drops under Multipoint.
+- **`Woke` Edition**: Calibrated user-preference NVRAM & Kalimba DSP reference configuration applied via `bose-ultra-tuner woke` (`[1.7]` EQ `Bass -3 dB / Mid +1 dB / Treble +2 dB`, `[1.11]` Sidetone `OFF 0x00`, `[1.10]` Multipoint `Disabled 0x06`, `[31.6]` Slot 4 `"Woke Studio"` with `CNC=0, AutoCNC=0, Spatial=Off, WindBlock=Off`). Delivers a `-78.8 dBFS` stationary noise floor (`54.3 dB` SNR, `+20.1 dB` quieter), locked `16 kHz` `mSBC` / `32 kHz` `aptX Voice` wideband uplink, and phase-coherent 48 kHz DAC routing across all connected devices.

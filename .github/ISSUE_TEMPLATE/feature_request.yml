@@ -1,0 +1,18 @@
+name: BMAP Register Discovery / Feature Request
+description: Propose a new BMAP Function Block command, EQ target curve, or platform transport
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature or BMAP Register Description
+      description: Describe the BMAP `[Block.Func]` opcode, acoustic target curve, or transport feature.
+    validations:
+      required: true
+  - type: textarea
+    id: payload
+    attributes:
+      label: BMAP Hex Payload / Coupler Data (Optional)
+      description: Include `TX` / `RX` hex bytes from `./bose-ultra-tuner raw` or `./bose-ultra-tuner scan` if applicable.
+      render: text
