@@ -9,7 +9,7 @@ FRAMEWORKS = -framework Foundation -framework IOBluetooth -framework CoreAudio
 TARGET = bose-ultra-tuner
 SRC = bose_ultra_tuner.m
 
-.PHONY: all woke fix-noise baseline status scan wizard clean
+.PHONY: all woke fix-noise use-phone use-mac baseline status scan wizard clean
 
 all: $(TARGET)
 
@@ -21,6 +21,12 @@ woke: $(TARGET)
 
 fix-noise: $(TARGET)
 	./$(TARGET) fix-noise
+
+use-phone: $(TARGET)
+	./$(TARGET) use-phone
+
+use-mac: $(TARGET)
+	./$(TARGET) use-mac
 
 baseline: $(TARGET)
 	./$(TARGET) baseline

@@ -32,9 +32,11 @@ echo "  5) Apply macOS High-Bitpool Bluetooth A2DP Tuning (Bitpool 58..80)"
 echo "  6) Scan Supported BMAP Function Blocks & Registers (scan)"
 echo "  7) Restore Factory Baseline NVRAM Settings (baseline)"
 echo "  8) Eliminate Playback Noise / HFP Call Hijack (fix-noise)"
+echo "  9) Hand Multipoint Audio Focus to Phone (use-phone)"
+echo " 10) Hand Multipoint Audio Focus to Mac (use-mac)"
 echo "  q) Quit"
 echo "========================================================================"
-read -rp "Select an option [1-8, q]: " choice
+read -rp "Select an option [1-10, q]: " choice
 
 case "${choice}" in
   1)
@@ -42,6 +44,12 @@ case "${choice}" in
     ;;
   8)
     "${TUNER}" fix-noise
+    ;;
+  9)
+    "${TUNER}" use-phone
+    ;;
+  10)
+    "${TUNER}" use-mac
     ;;
   2)
     "${TUNER}" status
