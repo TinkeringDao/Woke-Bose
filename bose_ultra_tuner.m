@@ -177,13 +177,13 @@ static void releaseBluetoothSCOIfNeeded(BOOL verbose) {
 
 static BOOL verifyBMAPHandshake(IOBluetoothRFCOMMChannel *channel, BMAPDelegate *delegate) {
     static const uint8_t kBMAPVersionGet[] = {0x00, 0x01, 0x01, 0x00};
-    pumpRunLoop(0.15);
+    pumpRunLoop(0.4);
     [delegate.rxBuffer setLength:0];
     IOReturn wRet = [channel writeSync:(void *)kBMAPVersionGet length:(UInt16)sizeof(kBMAPVersionGet)];
     if (wRet != kIOReturnSuccess) {
         return NO;
     }
-    pumpRunLoop(0.25);
+    pumpRunLoop(0.3);
     const uint8_t *rx = (const uint8_t *)delegate.rxBuffer.bytes;
     size_t rxLen = delegate.rxBuffer.length;
     for (size_t pos = 0; pos + 4 <= rxLen; ) {
@@ -460,7 +460,6 @@ int main(int argc, const char * argv[]) {
             return 4;
         }
 
-        pumpRunLoop(0.4);
         [delegate.rxBuffer setLength:0];
         printf("[+] BMAP RFCOMM Channel %u connected.\n\n", activeChannel);
 
