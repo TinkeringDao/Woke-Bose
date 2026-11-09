@@ -330,9 +330,10 @@ static void parseBMAPFrames(NSData *data) {
             char mname[33];
             memcpy(mname, &p[6], 32);
             mname[32] = '\0';
+            uint8_t ancLevel = (p[42] <= 10) ? (uint8_t)(10 - p[42]) : 0;
             const char *spStr = (p[44] == 0) ? "Off" : (p[44] == 1 ? "Still (Room)" : "Motion (Head)");
-            printf("  [AudioModes.ModeConfig #%u]   Name=\"%s\" | CNC=%u/10 | AutoCNC=%u | Spatial=%s | WindBlock=%s\n",
-                   p[0], mname, p[42], p[43], spStr, p[46] ? "ON" : "OFF");
+            printf("  [AudioModes.ModeConfig #%u]   Name=\"%s\" | ANC=%u/10 (atten=%u) | AutoCNC=%u | Spatial=%s | WindBlock=%s\n",
+                   p[0], mname, ancLevel, p[42], p[43], spStr, p[46] ? "ON" : "OFF");
         } else {
             printf("  [BMAP RX] [%u.%u] op=0x%02x len=%u: ", fblock, func, op, plen);
             for (uint8_t i = 0; i < plen; i++) printf("%02x ", p[i]);
@@ -461,7 +462,7 @@ int main(int argc, const char * argv[]) {
             uint8_t txMp[] = {0x01, 0x0A, 0x02, 0x01, 0x05};
             parseBMAPFrames(sendBMAP(channel, delegate, txMp, sizeof(txMp), 0.3));
 
-            // 4. Custom Mode Slot 4 ("Woke Studio"): CNC=10/10 (0x0A Full ANC), AutoCNC=0, Spatial=0, WindBlock=0
+            // 4. Custom Mode Slot 4 ("Woke Studio"): ANC=10/10 (atten=0x00 Full Quiet ANC), AutoCNC=0, Spatial=0, WindBlock=0
             uint8_t txSlot[4 + 39];
             memset(txSlot, 0, sizeof(txSlot));
             txSlot[0] = 0x1F; txSlot[1] = 0x06; txSlot[2] = 0x02; txSlot[3] = 39;
@@ -469,7 +470,7 @@ int main(int argc, const char * argv[]) {
             txSlot[5] = 0x00; txSlot[6] = 0x0C; // Prompt 0x000C ("Music")
             const char *name = "Woke Studio";
             memcpy(&txSlot[7], name, strlen(name));
-            txSlot[4 + 35] = 0x0A; // CNC = 10/10 (Full Active Noise Cancellation; 0x00 is Full Aware/Transparency)
+            txSlot[4 + 35] = 0x00; // ANC attenuation = 0 (10/10 Full Quiet ANC; 0x0A is 0/10 Full Aware/Transparency)
             txSlot[4 + 36] = 0x00; // AutoCNC = 0 (ActiveSense off)
             txSlot[4 + 37] = 0x00; // Spatial = 0 (Immersive Audio off)
             txSlot[4 + 38] = 0x00; // WindBlock = 0
@@ -478,10 +479,10 @@ int main(int argc, const char * argv[]) {
             // 5. Activate Slot 4 silently via [31.3] START
             uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
-            printf("[+] 'Woke' user-preference profile (CNC=10/10 Full ANC + 2-ch Stereo A2DP) saved to headphone NVRAM (Partition 6).\n");
+            printf("[+] 'Woke' user-preference profile (ANC=10/10 Full Quiet + 2-ch Stereo A2DP) saved to headphone NVRAM (Partition 6).\n");
 
         } else if ([cmd isEqualToString:@"fix-noise"]) {
-            printf("[*] Eliminating playback noise (releasing macOS HFP SCO call hijack + setting CNC=10/10 Full ANC)...\n");
+            printf("[*] Eliminating playback noise (releasing macOS HFP SCO call hijack + setting ANC=10/10 Full Quiet)...\n");
             uint8_t txSide[] = {0x01, 0x0B, 0x02, 0x02, 0x01, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txSide, sizeof(txSide), 0.3));
 
@@ -492,7 +493,7 @@ int main(int argc, const char * argv[]) {
             txSlot[5] = 0x00; txSlot[6] = 0x0C;
             const char *name = "Woke Studio";
             memcpy(&txSlot[7], name, strlen(name));
-            txSlot[4 + 35] = 0x0A; // CNC = 10/10 (Full Active Noise Cancellation)
+            txSlot[4 + 35] = 0x00; // ANC attenuation = 0 (10/10 Full Quiet ANC)
             txSlot[4 + 36] = 0x00; // AutoCNC = 0
             txSlot[4 + 37] = 0x00; // Spatial = 0
             txSlot[4 + 38] = 0x00; // WindBlock = 0
@@ -500,7 +501,7 @@ int main(int argc, const char * argv[]) {
 
             uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
-            printf("[+] Playback noise eliminated: CNC=10/10 Full ANC active in Slot 4 ('Woke Studio') and macOS locked to 2-ch Stereo A2DP.\n");
+            printf("[+] Playback noise eliminated: ANC=10/10 Full Quiet active in Slot 4 ('Woke Studio') and macOS locked to 2-ch Stereo A2DP.\n");
 
         } else if ([cmd isEqualToString:@"baseline"]) {
             printf("[*] Restoring Factory Baseline NVRAM Configuration...\n");
@@ -544,7 +545,7 @@ int main(int argc, const char * argv[]) {
             txSlot[5] = 0x00; txSlot[6] = 0x0D;
             const char *name = "Call Studio";
             memcpy(&txSlot[7], name, strlen(name));
-            txSlot[4 + 35] = 0x0A; // CNC = 10/10 (Full ANC so exterior noise isn't amplified into earcups)
+            txSlot[4 + 35] = 0x00; // ANC attenuation = 0 (10/10 Full Quiet ANC)
             txSlot[4 + 36] = 0x00;
             txSlot[4 + 37] = 0x00;
             txSlot[4 + 38] = windFlag;
@@ -553,7 +554,7 @@ int main(int argc, const char * argv[]) {
             uint8_t txAct[] = {0x1F, 0x03, 0x05, 0x02, 0x04, 0x00};
             parseBMAPFrames(sendBMAP(channel, delegate, txAct, sizeof(txAct), 0.3));
 
-            printf("[+] Call Mic & Kalimba DSP Optimization written to headphone NVRAM (Active Mode = Slot 4 'Call Studio', CNC=10/10).\n");
+            printf("[+] Call Mic & Kalimba DSP Optimization written to headphone NVRAM (Active Mode = Slot 4 'Call Studio', ANC=10/10).\n");
 
         } else if ([cmd isEqualToString:@"pimp-audio"]) {
             int8_t bass = -3, mid = 1, treble = 2;
