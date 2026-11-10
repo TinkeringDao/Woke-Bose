@@ -33,13 +33,26 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           BASE_REPO: ${{ github.repository }}
+          OPSEC_BLOCKLIST_REGEX: ${{ secrets.OPSEC_BLOCKLIST_REGEX }}
         run: |
           set -euo pipefail
           FAILURES=()
 
           # Gate 1: OPSEC & Zero-PII Check on working tree
-          if grep -rnI -iE "acid9burn|satori|munna|dachau|vierkirchen|85256|85221|48\.37|11\.50|elit3-x|elite-x|hindsight|192\.168\.10\.|100\.91\.|:9100|trackerintake|aoagents|/Users/satori" . --exclude-dir=.git --exclude=".git" --exclude="autonomous-pr-review.yml" --exclude="reusable-autonomous-pr-review.yml"; then
-            FAILURES+=("Gate 1 (OPSEC/PII): Forbidden identifier detected in repository tree.")
+          GENERIC_SECRET_REGEX='(BEGIN (RSA|OPENSSH|EC|PGP) PRIVATE KEY|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|AKIA[0-9A-Z]{16}|/Users/[a-zA-Z0-9._-]+/)'
+          GENERIC_HITS=$( { grep -rnI -E -- "${GENERIC_SECRET_REGEX}" . --exclude-dir=.git --exclude=".git" --exclude="autonomous-pr-review.yml" --exclude="reusable-autonomous-pr-review.yml" || true; } | cut -d: -f1,2 )
+          if [[ -n "${GENERIC_HITS}" ]]; then
+            echo "Gate 1 generic secret/path match at:"
+            echo "${GENERIC_HITS}"
+            FAILURES+=("Gate 1 (OPSEC/PII): Secret or local home path pattern detected in repository tree.")
+          fi
+          if [[ -n "${OPSEC_BLOCKLIST_REGEX:-}" ]]; then
+            BLOCKLIST_HITS=$( { grep -rnI -iE -- "${OPSEC_BLOCKLIST_REGEX}" . --exclude-dir=.git --exclude=".git" --exclude="autonomous-pr-review.yml" --exclude="reusable-autonomous-pr-review.yml" || true; } | cut -d: -f1,2 )
+            if [[ -n "${BLOCKLIST_HITS}" ]]; then
+              echo "Gate 1 OPSEC blocklist match at:"
+              echo "${BLOCKLIST_HITS}"
+              FAILURES+=("Gate 1 (OPSEC/PII): Forbidden identifier detected in repository tree.")
+            fi
           fi
 
           # Gate 2: Cryptographic Commit Signature Verification
