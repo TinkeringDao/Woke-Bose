@@ -152,7 +152,6 @@ Compatible players: **eqMac**, **SoundSource** (macOS), **Equalizer APO / Peace*
 - [`LEGAL.md`](LEGAL.md) — Statutory interoperability notices (`Directive 2009/24/EC` Arts. 1(2), 5(3), 6, 8; `Article 3(1)(b) of Directive (EU) 2016/943`; `Article 14(1)(c) of Regulation (EU) 2017/1001 (EUTMR)`; `15 U.S.C. §§ 1115(b)(4), 1125`; `17 U.S.C. §§ 102(b), 107, 1201(a), 1201(f)`; `18 U.S.C. §§ 1839(6)(B), 1030`; `Regulation (EU) 2024/2847` Recitals 15 & 18), non-circumvention statement, and RF regulatory notice.
 - [`SECURITY.md`](SECURITY.md) — Partition 6 (`EXT_RW_FS`) NVRAM safety boundaries and vulnerability disclosure policy.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) & [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor guidelines, clean-room rules, and zero-warning compiler standards.
-- [`AGENTS.md`](AGENTS.md) — Minimal context pointers for AI coding agents.
 - [`peq/`](peq/) — 10-band Parametric EQ presets for B&K 5128 Diffuse Field and GRAS Harman 2018 targets.
 
 ---

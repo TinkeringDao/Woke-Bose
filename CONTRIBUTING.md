@@ -1,42 +1,28 @@
 # Contributing to Woke Bose
 
-Contributions adding support for additional Bose BMAP registers, firmware revisions, or coupler measurements are welcome.
+Contributions adding support for additional Bose BMAP registers, firmware revisions, test coverage, or acoustic coupler measurements are welcome.
 
-## Development Workflow
+## Ground Rules
 
-1. **Fork & Branch**: Create a feature branch from `main` (`git checkout -b feat/your-feature`).
-2. **Zero-Warning Compilation**: All Objective-C changes in [`bose_ultra_tuner.m`](bose_ultra_tuner.m) must compile cleanly under `-Wall -Wextra -Werror`:
-   ```bash
-   clang -fobjc-arc -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 \
-     -framework Foundation -framework IOBluetooth -framework CoreAudio \
-     bose_ultra_tuner.m -o bose-ultra-tuner
-   ```
-3. **Script Verification**:
-   ```bash
-   bash -n bose-ultra-wizard.sh
-   python3 -m py_compile parse_appuhdr5.py
-   ```
-4. **Clean-Room, DMCA Immunity, & Privacy Hygiene (`Gadgetbridge` / `Asahi Linux` Standards)**:
-   - Include `# SPDX-License-Identifier: MIT` and the repository clean-room interoperability header at the top of every source file and script.
-   - Never hardcode personal Bluetooth MAC addresses or hardware serial numbers in source files.
-   - Never commit or upload proprietary firmware binaries (`.bin`, `.dfu`, `.kap`), mobile application packages (`.ipa`, `.apk`), decompiled vendor source code, or **screenshots of proprietary OEM mobile applications** in Issues or Pull Requests.
-   - Never commit verbatim hexadecimal slices of OEM firmware partitions, cryptographic Initialization Vectors (IVs/nonces), or RSA signature blocks; always use structural field descriptions and `<REDACTED_OEM_BYTES>` (see [`LEGAL.md`](LEGAL.md)).
-   - Document any newly discovered BMAP Function Blocks or opcodes functionally in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`GLOSSARY.md`](GLOSSARY.md).
+- Read and follow [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) in all issues, pull requests, commit messages, and discussions.
+- Review [`LEGAL.md`](LEGAL.md) before submitting protocol, container-inspection, or hardware-interoperability changes:
+  - Include `# SPDX-License-Identifier: MIT` and the repository clean-room interoperability header at the top of every source file and script.
+  - Never commit or upload proprietary firmware binaries (`.bin`, `.dfu`, `.kap`), mobile application packages (`.ipa`, `.apk`), decompiled vendor code, verbatim hexadecimal OEM firmware slices, cryptographic IVs/nonces, or screenshots of proprietary OEM applications. Always use structural field descriptions and `<REDACTED_OEM_BYTES>`.
+  - Document newly characterized BMAP Function Blocks or opcodes functionally in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`GLOSSARY.md`](GLOSSARY.md).
+- Do not include personal data, private network addresses, device serial numbers, Bluetooth MAC addresses, or credentials in code, tests, logs, or fixtures.
+- Report security vulnerabilities privately via [`SECURITY.md`](SECURITY.md) rather than public issues.
 
-## Pull Request Standards
+## Pull Request Workflow
 
-All Pull Requests must follow the repository [PR Template](.github/PULL_REQUEST_TEMPLATE.md):
-- **`## Summary`**: Architectural context and control-flow diagram where applicable.
-- **`## Evidence`**: Raw BMAP `TX`/`RX` hex dumps or acoustic telemetry proving `Before` vs. `After` behavior on hardware.
-- **`## Merge Danger`**: Explicit `**Door:** two-way | one-way` and `**Blast Radius:** local | module | system` classification.
+1. Create a focused topic branch from `main` (`feat/...`, `fix/...`, `docs/...`, `chore/...`, `ci/...`).
+2. Keep commits atomic, use Conventional Commit headers (`feat:`, `fix:`, `docs:`, `ci:`, `refactor:`, `test:`), and sign all commits (`git config commit.gpgsign true`).
+3. Run the local build, compiler-warning, and syntax verification suite before opening a pull request:
 
-### Verification Checklist & Pre-Merge Gate Commands
+```bash
+make clean && make CFLAGS="-fobjc-arc -Wall -Wextra -Werror -Wno-deprecated-declarations -O2"
+./bose-ultra-tuner --help
+bash -n bose-ultra-wizard.sh
+python3 -m py_compile parse_appuhdr5.py
+```
 
-Every Pull Request is automatically audited by [`.github/workflows/autonomous-pr-review.yml`](.github/workflows/autonomous-pr-review.yml) and [`docs/agents/autonomous-pipeline.md`](docs/agents/autonomous-pipeline.md). Run these commands locally before opening or updating a PR:
-
-| Gate | Requirement | Local Pre-Merge Command |
-| :--- | :--- | :--- |
-| **Gate 1: OPSEC & Zero-PII** | Zero personal identifiers, local usernames, postal codes, or coordinates in repo tree | `grep -rnI -iE "<FORBIDDEN_PII_PATTERN>" . --exclude-dir=.git --exclude="*autonomous-pr-review.yml"` (see workflow) |
-| **Gate 2: Cryptographic Signatures** | Every commit signed with `ED25519` SSH key (`verified == true`) | `git log -1 --show-signature` |
-| **Gate 3: Legal & Autonomous Spec** | `LEGAL.md` (with German Statutory Addendum), `LICENSE`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CODEOWNERS`, `AGENTS.md`, `CLAUDE.md`, `docs/agents/autonomous-pipeline.md` present | `grep -q "Addendum: German Statutory References" LEGAL.md && test -s docs/agents/autonomous-pipeline.md` |
-| **Gate 4: Build & Syntax** | Zero-warning Objective-C compilation + Bash & Python syntax checks | `make && bash -n bose-ultra-wizard.sh && python3 -m py_compile parse_appuhdr5.py` |
+4. Open a pull request against `main` summarizing the problem, root cause or design choice, and verification output. All pull requests are licensed under the MIT License ([`LICENSE`](LICENSE)) and squash-merge onto `main` once `ci` and `security` checks pass.
