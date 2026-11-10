@@ -80,7 +80,7 @@ Every Pull Request undergoes two complementary review tracks directly on GitHub:
 
 Because the `Protect main branch` ruleset enforces `dismiss_stale_reviews_on_push: true` and `require_last_push_approval: true`:
 
-1. Any finding raised by the Reviewer Subagent, any unresolved inline review thread (`isResolved == false`), or any failure in the 4-Gate CI workflow is remediated directly on the PR branch by the `agy` (`gemini-4-argon-high`) worker.
+1. Any finding raised by the Reviewer Subagent, any unresolved inline review thread (`isResolved == false`), or any failure in the 4-Gate CI workflow is remediated directly on the PR branch before merge.
 2. Remediation changes are committed with an `ED25519` SSH signature (`fix(<scope>): address PR review ...`), pushed to the PR branch, and any addressed inline `reviewThreads` are resolved.
 3. A structured remediation summary comment is posted on the PR (`gh pr comment <PR_NUMBER> --body "## Autonomous Remediation Complete ..."`), and the 4-Gate workflow automatically re-evaluates the updated `HEAD` commit.
 
