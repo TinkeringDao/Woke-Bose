@@ -3,39 +3,22 @@
 This document defines the 6-stage **Fully Autonomous Development Pipeline** governing all code, firmware tooling, acoustic filter, and documentation changes in `TinkeringDao/Woke-Bose`. Every autonomous agent and contributor workflow must execute these stages end-to-end without bypassing branch protection, cryptographic commit verification, or statutory clean-room invariants.
 
 ```mermaid
-flowchart LR
-    TI["Kanban trackerIntake (agy / gemini-4-argon-high)"] --> S1["Stage 1: Context & Hindsight Recall"]
+flowchart LR    S1["Stage 1: Repository Context & Spec Alignment"]
     S1 --> S2["Stage 2: Branch Isolation & Signed TDD"]
     S2 --> S3["Stage 3: PR Creation (Summary / Evidence / Danger)"]
     S3 --> S4["Stage 4: Dual PR Review (4-Gate CI + Agentic Audit)"]
     S4 --> S5["Stage 5: Autonomous Remediation Loop"]
-    S5 --> S6["Stage 6: Bot Approval, Squash Merge & Hindsight Retain"]
+    S5 --> S6["Stage 6: Bot Approval & Squash Merge"]
 ```
 
 ---
 
-## Kanban `trackerIntake` Worker Loop (`agy` / `gemini-4-argon-high`)
-
-Autonomous issue intake and pull request execution are driven by the Kanban `trackerIntake` worker loop running on the **Gemini 4 Argon** engine (`agy` / `gemini-4-argon-high`):
-
-1. **Issue Polling & Triage Intake (`trackerIntake`)**: The orchestrator polls GitHub Issues in `TinkeringDao/Woke-Bose` for actionable items (`ready-for-agent` or assigned tracker issues) and provisions an isolated git worktree per issue. If an issue requires architectural human judgment beyond repository specifications, the worker classifies it as `needs-human-review` (`ready-for-human`) and halts without opening a speculative PR.
-2. **Isolated Worktree Execution (`agy` / `gemini-4-argon-high`)**: A dedicated Gemini 4 Argon (`agy` / `gemini-4-argon-high`) worker executes Stages 1–6 inside its isolated worktree—recalling Hindsight context via `${HINDSIGHT_URL}`, authoring `ED25519`-signed commits as `TinkeringDao`, verifying zero-warning Objective-C/Bash/Python builds, and opening a Pull Request referencing `Closes #<issue_number>`.
-3. **End-to-End Review, Thread Resolution & Squash Merge**: The worker monitors the 4-Gate CI workflow and inline `reviewThreads`, pushes signed remediation commits until all gates pass and every inline review thread has `isResolved == true`, and completes the squash-merge into `main` followed by Hindsight memory retention.
-
----
-
-## Stage 1: Context & Hindsight Recall
+## Stage 1: Repository Context & Spec Alignment
 
 Before modifying any file or opening a branch:
 
-1. **Hindsight Memory Recall**: Query the persistent Hindsight vector/graph memory bank via `${HINDSIGHT_URL}` (defaulting example to `http://127.0.0.1:9100`) for prior architectural decisions, BMAP protocol invariants, and legal baselines:
-   ```bash
-   export HINDSIGHT_URL="${HINDSIGHT_URL:-http://127.0.0.1:9100}"
-   curl -s -X POST "${HINDSIGHT_URL}/v1/default/banks/${HINDSIGHT_BANK}/memories/recall" \
-     -H "Content-Type: application/json" \
-     -d '{"query": "Woke-Bose BMAP RFCOMM NVRAM CoreAudio legal baseline"}'
-   ```
-2. **Mandatory Repository Context**: Read the canonical governance and domain files:
+
+1. **Mandatory Repository Context**: Read the canonical governance and domain files:
    - [`AGENTS.md`](../../AGENTS.md) — Repository entry point and verification commands.
    - [`LEGAL.md`](../../LEGAL.md) — 8-pillar EU/US statutory interoperability baseline and the `Addendum: German Statutory References (Applicable to Residents of Germany)`.
    - [`SECURITY.md`](../../SECURITY.md) — Vulnerability disclosure policy and clean-room hardware boundary rules.
@@ -47,7 +30,7 @@ Before modifying any file or opening a branch:
 
 Direct pushes to `main` are blocked by the repository ruleset (`Protect main branch`).
 
-1. **Branch Isolation**: Sync `main` from `origin/main` and create an isolated topic branch (or `trackerIntake` worktree branch) using a canonical prefix (`feat/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*`, `ao/*`):
+1. **Branch Isolation**: Sync `main` from `origin/main` and create an isolated topic branch using a canonical prefix (`feat/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*`):
    ```bash
    git fetch origin
    git checkout -B main origin/main
@@ -103,11 +86,10 @@ Because the `Protect main branch` ruleset enforces `dismiss_stale_reviews_on_pus
 
 ---
 
-## Stage 6: Automated Approval, Squash Merge & Hindsight Retention
+## Stage 6: Automated Approval & Squash Merge
 
 1. **Automated GitHub Approval**: Once all 4 CI gates pass (including zero unresolved `reviewThreads`) on the latest remediated commit and the PR author is verified as `TinkeringDao` on a same-repository branch, `github-actions[bot]` executes `gh pr review <PR_NUMBER> --approve`, satisfying `required_approving_review_count: 1` and `require_last_push_approval: true`.
 2. **Squash Merge & Branch Cleanup**: The approved PR is merged into `main` and the remote feature branch is deleted:
    ```bash
    gh pr merge <PR_NUMBER> --squash --delete-branch
    ```
-3. **Hindsight Knowledge Retention**: The merged commit SHA, PR number, and architectural summary are persisted back to the Hindsight memory bank (`POST ${HINDSIGHT_URL}/v1/default/banks/${HINDSIGHT_BANK}/memories`, where `HINDSIGHT_URL` defaults to `http://127.0.0.1:9100`) so subsequent autonomous runs inherit the updated state.

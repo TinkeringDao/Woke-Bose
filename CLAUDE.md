@@ -5,7 +5,7 @@ Entry point for Claude Code and autonomous coding agents operating in `Tinkering
 ## Mandatory Reading Before Any Action
 
 1. **[`AGENTS.md`](AGENTS.md)** — Repository context pointers, domain glossary references, and project verification commands.
-2. **[`docs/agents/autonomous-pipeline.md`](docs/agents/autonomous-pipeline.md)** — The 6-stage **Fully Autonomous Development Pipeline Specification** (Context & Hindsight Recall -> Signed Branch TDD -> PR Creation -> Dual 4-Gate CI & Subagent Review -> Autonomous Remediation -> Automated Approval & Squash Merge).
+2. **[`docs/agents/autonomous-pipeline.md`](docs/agents/autonomous-pipeline.md)** — The 6-stage **Fully Autonomous Development Pipeline Specification** (Repository Context & Spec Alignment -> Signed Branch TDD -> PR Creation -> Dual 4-Gate CI & Subagent Review -> Autonomous Remediation -> Automated Approval & Squash Merge).
 3. **[`LEGAL.md`](LEGAL.md)** — 8-pillar EU/US clean-room hardware interoperability framework and `Addendum: German Statutory References (Applicable to Residents of Germany)`.
 
 ## Non-Negotiable Constraints
