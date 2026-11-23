@@ -2,7 +2,7 @@
 
 ## 1. Independent Interoperability Project & Non-Affiliation (Trademark Notice)
 
-**`bose-ultra-tuner` ("Woke" Edition) — Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra Headphones** is an **independent, non-commercial, community-developed free and open-source software project** created solely to enable desktop host interoperability and user-preference configuration on macOS (where no official desktop companion application is provided).
+**`biquadctl` (`bose-ultra-tuner`) — Unofficial macOS NVRAM & DSP Interoperability Utility for Bose QuietComfort Ultra (`QCC5181`)** is an **independent, non-commercial, community-developed free and open-source software project** created solely to enable desktop host interoperability and user-preference configuration on macOS (where no official desktop companion application is provided).
 
 - **No Affiliation or Endorsement:** This project is **not affiliated with, authorized by, sponsored by, or endorsed by Bose Corporation, Qualcomm Incorporated, Analog Devices, Inc., STMicroelectronics, Infineon Technologies AG, or Apple Inc.**
 - **Indication of Intended Purpose & Nominative Fair Use:**
