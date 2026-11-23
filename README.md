@@ -112,6 +112,12 @@ Host 10-band Parametric EQ presets for eqMac, SoundSource, Equalizer APO, EasyEf
 - [`parse_appuhdr5.py`](parse_appuhdr5.py) — Read-only `APPUHDR5` TLV header and Shannon entropy inspector (zero decryption or OEM binaries)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) & [`GLOSSARY.md`](GLOSSARY.md) — Silicon BOM, Partition 6 NVRAM boundary, and BMAP protocol notes
 
+## Hardware & Tooling Partners
+
+- **[AISLER](https://aisler.net)** — German/EU ENIG PCB fabrication and SMD stencils for open-source audio & DSP breakout boards.
+- **[PCBWay](https://www.pcbway.com)** — Rapid PCB/PCBA prototyping for drop-in I2S/DSP audio hardware.
+- **[JetBrains](https://www.jetbrains.com/?from=TinkeringDao)** — Developed with JetBrains CLion and PyCharm under the JetBrains Open Source Program.
+
 ## License & Legal
 
 Released under the [MIT License](LICENSE).
