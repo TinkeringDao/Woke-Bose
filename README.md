@@ -1,9 +1,10 @@
-# Woke Bose (`bose-ultra-tuner`)
+# biquadctl
 
-[![CI](https://github.com/TinkeringDao/Woke-Bose/actions/workflows/ci.yml/badge.svg)](https://github.com/TinkeringDao/Woke-Bose/actions/workflows/ci.yml)
+[![CI](https://github.com/TinkeringDao/biquadctl/actions/workflows/ci.yml/badge.svg)](https://github.com/TinkeringDao/biquadctl/actions/workflows/ci.yml)
+[![Security](https://github.com/TinkeringDao/biquadctl/actions/workflows/security.yml/badge.svg)](https://github.com/TinkeringDao/biquadctl/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-macOS Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) user-preference NVRAM/DSP client, CoreAudio `HFP SCO` input guard, read-only `APPUHDR5` container metadata inspector, and acoustic reference calibration suite for the Bose QuietComfort Ultra Headphones (1st Gen, `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`).
+Zero-daemon macOS Bluetooth RFCOMM (`00000000-deca-fade-deca-deafdecacaff`) 10-band parametric biquad NVRAM EQ and DSP calibration client (`bose-ultra-tuner`), CoreAudio `HFP SCO` input guard, read-only `APPUHDR5` container metadata inspector, and acoustic reference presets for Bose QuietComfort Ultra (`QCC5181`, 1st Gen `PID 0x4066` / `Lonestarr`, firmware `1.6.7+g6ebabd2`).
 
 ## Problem & Approach
 
@@ -20,6 +21,9 @@ Using Bose QuietComfort Ultra Headphones with a Mac hits three annoying stock de
 With your Bose QuietComfort Ultra Headphones paired and connected to macOS:
 
 ```bash
+git clone https://github.com/TinkeringDao/biquadctl.git
+cd biquadctl
+
 # Build ./bose-ultra-tuner
 make
 
